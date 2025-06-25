@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Staff</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container mt-4">
+    <h3>✏️ Edit Staff</h3>
+
+    {% set known_departments = [
+      "Emergency", "ICU", "General Ward", "Surgery", "Pediatrics", "Maternity", "Radiology",
+      "Pharmacy", "Cardiology", "Neurology", "Oncology", "Laboratory", "Orthopedics",
+      "Administration", "Reception", "Maintenance"
+    ] %}
+
+    <form method="POST">
+      <div class="mb-3">
+        <label>Username</label>
+        <input type="text" name="username" class="form-control" value="{{ staff.username }}" required>
+      </div>
+
+      <div class="mb-3">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control" value="{{ staff.email }}" required>
+      </div>
+
+      {% if is_doctor %}
+        <div class="mb-3">
+          <label>Department</label>
+          <input type="text" name="department_display" class="form-control" value="{{ staff.department_id }}" readonly>
+          <input type="hidden" name="department_id" value="{{ staff.department_id }}">
+        </div>
+      {% else %}
+        <div class="mb-3">
+          <label>Department</label>
+          <select name="department_id" id="department" class="form-select" onchange="toggleCustomDept(this.value)">
+            <option value="">-- Select Department --</option>
+            {% for dept in known_departments %}
+              <option value="{{ dept }}" {% if staff.department_id == dept %}selected{% endif %}>{{ dept }}</option>
+            {% endfor %}
+            <option value="Other" {% if staff.department_id not in known_departments %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+
+        <div class="mb-3" id="customDeptDiv" style="display: none;">
+          <label for="custom_department_id">Specify Department</label>
+          <input type="text" name="custom_department_id" id="custom_department" class="form-control"
+                 value="{% if staff.department_id not in known_departments %}{{ staff.department_id }}{% endif %}">
+        </div>
+      {% endif %}
+
+      {% if not is_doctor %}
+        <div class="mb-3">
+          <label>Role</label>
+          <select name="role" class="form-control" required>
+            <option value="admin" {% if staff.role == 'admin' %}selected{% endif %}>Admin (Full Access)</option>
+            <option value="doctor" {% if staff.role == 'doctor' %}selected{% endif %}>Doctor (Department Manager)</option>
+            <option value="staff" {% if staff.role == 'staff' %}selected{% endif %}>Nurse (Nurse / General)</option>
+          </select>
+        </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary">Update</button>
+      <a href="/admin" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+
+  <script>
+    function toggleCustomDept(value) {
+      const customDiv = document.getElementById('customDeptDiv');
+      const customInput = document.getElementById('custom_department');
+
+      if (value === 'Other') {
+        customDiv.style.display = 'block';
+        customInput.required = true;
+      } else {
+        customDiv.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const selectedValue = document.getElementById('department')?.value;
+      toggleCustomDept(selectedValue);
+    });
+  </script>
+</body>
+</html>

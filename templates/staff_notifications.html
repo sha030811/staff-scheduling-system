@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Notifications</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    /* Reuse your notif-card styling here */
+     .notif-card {
+      position: relative;
+      background: #fff;
+      border-left: 5px solid #007bff;
+      padding: 12px 36px 12px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      line-height: 2;
+    }
+
+    .notif-card .delete-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        padding-right: 30;
+        padding-bottom: 20;
+        border: 2px;
+        background: transparent;
+        color: red;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+        .notif-card strong {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 4px;
+    color: #222;
+    }
+
+    .notif-card .text-muted {
+    font-size: 15px;
+    color: #888;
+    }
+
+    .notif-card small {
+    color: #666;
+    display: block;
+    margin: 6px 0;
+    }
+
+    .notif-card p {
+    margin: 8px 0 0;
+    font-size: 18px;
+    color: #333;
+    }
+
+    .notif-card.high { border-color: red; }
+    .notif-card.low { border-color: green; }
+    .hidden { display: none; }
+
+.filter-sort-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 equal columns */
+  gap: 10px; /* space between controls */
+  margin-bottom: 20px;
+}
+
+.filter-sort-controls select,
+.filter-sort-controls input[type="date"],
+.filter-sort-controls input[type="text"] {
+  width: 100%; /* fill the grid cell */
+  padding: 12px 20px;
+  border-radius: 4px;
+  border: 2px solid #191818;
+  font-size: 14px;
+}
+
+/* Responsive: stack vertically on small screens */
+@media (max-width: 600px) {
+  .filter-sort-controls {
+    grid-template-columns: 1fr; /* single column */
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h3>📬 My Notifications</h3>
+    
+
+      <input type="text" id="searchBox" class="form-control mb-3" placeholder="Search title/message..." style="margin-left: 1px;"/>
+      <div class="filter-sort-controls mb-3">
+        <select id="filterPriority" class="form-select" style= "display: inline-block; margin-left: 1px;">
+            <option value="">All Priorities</option>
+            <option value="Low">Low</option>
+            <option value="Normal">Normal</option>
+            <option value="High">High</option>
+        </select>
+
+        <input type="date" id="filterDate" style="display: inline-block; margin-left: 1px;" />
+
+        <input type="text" id="filterSender" placeholder="Filter by sender" style="display: inline-block; margin-left: 1px;" />
+
+        <select id="sortOrder" class="form-select" style="display: inline-block; margin-left: 1px;">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="priority">Priority</option>
+        </select>
+        </div>
+          <div id="staffNotifContainer"></div>
+        </div>
+    </div>
+      </div>
+
+
+  <!-- Toast container -->
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">Notification</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="toastBody"></div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this notification?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Detail Modal -->
+<div class="modal fade" id="notificationDetailModal" tabindex="-1" aria-labelledby="notificationDetailLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="notificationDetailLabel">Notification Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h6 id="detailTitle"></h6>
+        <p><small><strong>From:</strong> <span id="detailSender"></span></small></p>
+        <p><small><strong>Priority:</strong> <span id="detailPriority"></span></small></p>
+        <p><small><strong>Date:</strong> <span id="detailDate"></span></small></p>
+        <hr>
+        <p id="detailMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script>
+let notificationsData = [];
+let deleteId = null;
+
+async function loadNotifications() {
+  const res = await fetch('/notifications/staff_history');
+  notificationsData = await res.json();
+
+  const container = document.getElementById('staffNotifContainer');
+  const filterPriority = document.getElementById('filterPriority');
+  const filterDate = document.getElementById('filterDate');
+  const filterSender = document.getElementById('filterSender');
+  const sortOrder = document.getElementById('sortOrder');
+  const searchBox = document.getElementById('searchBox');
+
+  function renderList() {
+    let filtered = notificationsData.filter(n => {
+      const searchTerm = searchBox.value.toLowerCase();
+      if (!n.title.toLowerCase().includes(searchTerm) && !n.message.toLowerCase().includes(searchTerm)) {
+        return false;
+      }
+      if (filterPriority.value && n.priority !== filterPriority.value) return false;
+      if (filterSender.value && !n.sender.toLowerCase().includes(filterSender.value.toLowerCase())) return false;
+      if (filterDate.value) {
+        const notifDate = n.created_at.split(' ')[0];
+        if (notifDate !== filterDate.value) return false;
+      }
+      return true;
+    });
+
+    filtered.sort((a, b) => {
+      if (sortOrder.value === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+      if (sortOrder.value === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+      if (sortOrder.value === 'priority') {
+        const rank = { 'High': 3, 'Normal': 2, 'Low': 1 };
+        return (rank[b.priority] || 0) - (rank[a.priority] || 0);
+      }
+      return 0;
+    });
+
+    container.innerHTML = '';
+    if (filtered.length === 0) {
+      container.innerHTML = '<p>No notifications found.</p>';
+    } else {
+      filtered.forEach(n => {
+        const div = document.createElement('div');
+        div.className = `notif-card ${n.priority.toLowerCase()}`;
+        div.innerHTML = `
+          <strong>${n.title}</strong> <span class="text-muted">(${n.created_at})</span><br>
+          <small>From: ${n.sender} | Priority: ${n.priority}</small>
+          <p>${n.message}</p>
+          <button class="btn btn-sm btn-danger delete-btn" data-id="${n.id}">❌</button>
+          <button class="btn btn-sm btn-primary view-detail-btn" data-id="${n.id}">View Details</button>
+        `;
+        container.appendChild(div);
+      });
+
+      addViewDetailListeners();
+      addDeleteListeners();
+    }
+  }
+
+  // Re-render on filter input
+  [searchBox, filterPriority, filterDate, filterSender, sortOrder].forEach(el => {
+    el.addEventListener('input', renderList);
+  });
+
+  renderList();
+}
+
+function addViewDetailListeners() {
+  document.querySelectorAll('.view-detail-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const id = button.getAttribute('data-id');
+      const notif = notificationsData.find(n => n.id == id);
+      if (!notif) return;
+
+      document.getElementById('detailTitle').textContent = notif.title;
+      document.getElementById('detailSender').textContent = notif.sender;
+      document.getElementById('detailPriority').textContent = notif.priority;
+      document.getElementById('detailDate').textContent = notif.created_at;
+      document.getElementById('detailMessage').textContent = notif.message;
+
+      const modal = new bootstrap.Modal(document.getElementById('notificationDetailModal'));
+      modal.show();
+    });
+  });
+}
+
+function addDeleteListeners() {
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      deleteId = button.getAttribute('data-id');
+      const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+      modal.show();
+    });
+  });
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+  if (!deleteId) return;
+  try {
+    const res = await fetch(`/notifications/delete/${deleteId}`, { method: 'POST' });
+    if (res.ok) {
+      showToast('Notification deleted successfully!');
+      loadNotifications();
+    } else {
+      showToast('Failed to delete notification');
+    }
+  } catch {
+    showToast('Error occurred during deletion');
+  }
+  const modalEl = document.getElementById('deleteConfirmModal');
+  bootstrap.Modal.getInstance(modalEl).hide();
+  deleteId = null;
+});
+
+function showToast(message) {
+  const toastBody = document.getElementById('toastBody');
+  toastBody.textContent = message;
+  const toastEl = document.getElementById('liveToast');
+  new bootstrap.Toast(toastEl).show();
+}
+
+loadNotifications();
+</script>
+
+</body>
+</html>

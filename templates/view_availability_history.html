@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Availability History</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container mt-4">
+    <h3>🍜 Availability History</h3>
+
+    <!-- 🔧 Unified Sorting + Filtering Bar -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+      <!-- Sort Buttons -->
+      <div>
+        <a href="/view_availability_history?sort=staff" class="btn btn-outline-primary btn-sm me-2">Sort by Staff</a>
+        <a href="/view_availability_history?sort=date" class="btn btn-primary btn-sm">Sort by Date</a>
+      </div>
+
+      <!-- Filter Form -->
+      <form method="GET" class="d-flex flex-wrap align-items-center gap-2">
+        <input type="text" name="staff_search" class="form-control form-control-sm" placeholder="Search by Staff" value="{{ request.args.get('staff_search', '') }}" style="min-width: 160px">
+
+        <select name="day_filter" class="form-select form-select-sm">
+          <option value="">All Days</option>
+          {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+            <option value="{{ day }}" {% if request.args.get('day_filter') == day %}selected{% endif %}>{{ day }}</option>
+          {% endfor %}
+        </select>
+
+        <select name="status_filter" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          <option value="Approved" {% if request.args.get('status_filter') == 'Approved' %}selected{% endif %}>Approved</option>
+          <option value="Rejected" {% if request.args.get('status_filter') == 'Rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+
+        <select name="submission_filter" class="form-select form-select-sm">
+          <option value="">All Types</option>
+          <option value="first" {% if request.args.get('submission_filter') == 'first' %}selected{% endif %}>First Submission</option>
+          <option value="resubmission" {% if request.args.get('submission_filter') == 'resubmission' %}selected{% endif %}>Resubmissions</option>
+        </select>
+
+        <button type="submit" class="btn btn-outline-secondary btn-sm">🔎 Filter</button>
+      </form>
+    </div>
+
+    {% if requests %}
+      <table class="table table-bordered table-hover mt-3">
+        <thead class="table-light">
+          <tr>
+            <th>Staff</th>
+            <th>Day</th>
+            <th>Date</th>
+            <th>Shift</th>
+            <th>Status</th>
+            <th>Submitted At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in requests %}
+            <tr>
+              <td>{{ staff_list[req.staff_id].full_name }}</td>
+              <td>{{ req.day_of_week }}</td>
+              <td>{{ req.date }}</td>
+              <td>{{ req.time_of_day }}</td>
+              <td>
+                {% if req.status == 'Approved' %}
+                  <span class="badge bg-success">Approved</span>
+                {% elif req.status == 'Rejected' %}
+                  <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if req.created_at %}
+                  {{ req.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                {% else %}
+                  <em class="text-muted">N/A</em>
+                {% endif %}
+                {% if req.is_resubmission %}
+                  <span class="badge bg-warning text-dark ms-2">Resubmission</span>
+                {% else %}
+                  <span class="badge bg-secondary ms-2">First Submission</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="mt-3 text-muted">No historical availability records found.</p>
+    {% endif %}
+
+    <a href="/view_availability_requests" class="btn btn-secondary mt-3">🔙 Back to Requests</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schedule Requests</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+  <style>
+    .ts-wrapper {
+      min-width: 250px;
+    }
+    .card-body {
+        transition: box-shadow 0.2s ease;
+      }
+    .card-body:hover {
+      box-shadow: 0 0 15px rgba(0,0,0,0.07);
+      background-color: #fdfdfd;
+    }
+
+  </style>
+</head>
+<body>
+  <!-- 🔺 Inside <body> -->
+<body style="font-family: 'Poppins', sans-serif; background-color: #f8f9fa;">
+  <div class="container mt-4">
+    <!-- 🔹 Page Title + Back Button -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h3 class="mb-0">📝 Schedule Request Approval</h3>
+      <a href="{{ url_for('auth.admin_dashboard') }}" class="btn btn-outline-primary">
+        ⬅ Back to Dashboard
+      </a>
+    </div>
+
+    <!-- 🔔 Pending Alert -->
+    {% set pending_count = requests | selectattr('status', 'equalto', 'Pending') | list | length %}
+    {% if pending_count > 0 %}
+      <div class="alert alert-warning d-inline-block py-2 px-3 rounded-pill mb-4">
+        🔔 {{ pending_count }} pending request{{ 's' if pending_count > 1 else '' }} need attention
+      </div>
+    {% endif %}
+
+    <!-- 🔎 Filter Section -->
+    <div class="d-flex justify-content-end align-items-center mb-3 gap-2 flex-wrap">
+      <form method="get" id="staffForm" class="d-flex align-items-center gap-2">
+        <select id="staff_id" name="staff_id" class="form-select" style="width: 220px;">
+          <option value="All" {% if selected_staff_id == 'All' %}selected{% endif %}>All Staff</option>
+          {% for id, user in staff_list.items() %}
+            <option value="{{ id }}" {% if selected_staff_id|int == id %}selected{% endif %}>
+              {{ user.full_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          {{ selected_status or 'All Status' }}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{{ url_for('auth.schedule_requests', status='All') }}">All</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('auth.schedule_requests', status='Pending') }}">Pending</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('auth.schedule_requests', status='Approved') }}">Approved</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('auth.schedule_requests', status='Rejected') }}">Rejected</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 🧾 Request Cards -->
+    {% for req in requests %}
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body bg-white rounded p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-semibold text-primary mb-0">🧑‍⚕️ {{ staff_list[req.staff_id].full_name }}</h4>
+            <span class="badge fs-6 py-2 px-3 rounded-pill 
+              {% if req.status == 'Pending' %}bg-warning text-dark
+              {% elif req.status == 'Approved' %}bg-success
+              {% else %}bg-danger
+              {% endif %}
+            ">
+              {{ req.status }}
+            </span>
+          </div>
+
+          <hr>
+
+          <div class="row mb-3">
+            <div class="col-md-6 mb-2">
+              <p><strong>Date:</strong> {{ req.requested_date }}</p>
+              <p><strong>Submitted at:</strong> {{ req.created_at }}</p>
+            </div>
+            <div class="col-md-6 mb-2">
+              <p><strong>Current Shift:</strong> {{ req.current_shift }}</p>
+              <p><strong>Request Type:</strong>
+                {{ req.request_type }}
+                {% if req.request_type == 'Shift Swap' %}
+                  → {{ req.desired_shift }}
+                {% endif %}
+              </p>
+            </div>
+          </div>
+
+          <p class="mb-2"><strong>Reason:</strong> {{ req.reason }}</p>
+
+          {% if req.status == 'Pending' %}
+          <div class="mt-3 d-flex gap-2">
+            <form action="/approve_request/{{ req.id }}" method="post">
+              <button type="submit" class="btn btn-success">✔ Approve</button>
+            </form>
+            <form action="/reject_request/{{ req.id }}" method="post">
+              <button type="submit" class="btn btn-danger">✖ Reject</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+
+  <!-- ✅ TomSelect JS for Staff Search -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('staffForm');
+
+      const select = new TomSelect('#staff_id', {
+        placeholder: 'Search staff...',
+        allowEmptyOption: true,
+        create: false,
+        maxItems: 1,
+        closeAfterSelect: true,
+        hideSelected: true,
+
+        onChange: function (value) {
+          if (value !== null && value !== "") {
+            form.submit();
+          }
+        },
+
+        onDropdownOpen: function () {
+          this.setTextboxValue(""); // Clear input for typing
+          this.refreshOptions(false);
+        }
+      });
+
+      select.control_input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const highlighted = select.dropdown.querySelector('.active');
+          if (highlighted && highlighted.dataset.value) {
+            select.setValue(highlighted.dataset.value);
+            form.submit();
+          }
+        }
+      });
+    });
+  </script>
+
+  {% if request.args.get('success') %}
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+  <div id="actionNotification" class="toast align-items-center text-white border-0 show {% if request.args.get('success') == 'approved' %}bg-success{% elif request.args.get('success') == 'rejected' %}bg-danger{% else %}bg-info{% endif %}" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        {% if request.args.get('success') == 'approved' %}
+          ✔ The request was successfully approved.
+        {% elif request.args.get('success') == 'rejected' %}
+          ✖ The request was successfully rejected.
+        {% else %}
+          ✅ Status updated successfully.
+        {% endif %}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const toastEl = document.getElementById('actionNotification');
+    const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+    toast.show();
+  });
+</script>
+{% endif %}
+
+</body>
+</html>

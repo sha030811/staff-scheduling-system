@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Schedule Request</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5">
+  <h3 class="mb-4">✏️ Edit Schedule Request</h3>
+
+  <form method="POST">
+    <div class="mb-3">
+      <label for="request_type" class="form-label">Request Type</label>
+      <select class="form-select" id="request_type" name="request_type" required>
+        <option value="">-- Select --</option>
+        <option value="Shift Swap" {% if req.request_type == 'Shift Swap' %}selected{% endif %}>Shift Swap</option>
+        <option value="Take Off" {% if req.request_type == 'Take Off' %}selected{% endif %}>Take Off</option>
+        <option value="MC" {% if req.request_type == 'MC' %}selected{% endif %}>MC</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="current_shift" class="form-label">Current Shift</label>
+      <select class="form-select" name="current_shift" id="current_shift" required>
+        <option value="">-- Select --</option>
+        <option value="Morning" {% if req.current_shift == 'Morning' %}selected{% endif %}>Morning</option>
+        <option value="Evening" {% if req.current_shift == 'Evening' %}selected{% endif %}>Evening</option>
+        <option value="Full Day" {% if req.current_shift == 'Full Day' %}selected{% endif %}>Full Day</option>
+        <option value="On-call" {% if req.current_shift == 'On-call' %}selected{% endif %}>On-call</option>
+      </select>
+    </div>
+
+   <div class="mb-3" id="desired-shift-group">
+  <label for="desired_shift" class="form-label">Desired Shift</label>
+  <select class="form-select" name="desired_shift" id="desired_shift">
+    <option value="">-- Select --</option>
+    <option value="Morning" {% if req.desired_shift == 'Morning' %}selected{% endif %}>Morning</option>
+    <option value="Evening" {% if req.desired_shift == 'Evening' %}selected{% endif %}>Evening</option>
+    <option value="Full Day" {% if req.desired_shift == 'Full Day' %}selected{% endif %}>Full Day</option>
+    <option value="On-call" {% if req.desired_shift == 'On-call' %}selected{% endif %}>On-call</option>
+  </select>
+</div>
+
+    <div class="mb-3">
+      <label for="requested_date" class="form-label">Requested Date</label>
+      <input type="date" class="form-control" name="requested_date" id="requested_date" value="{{ req.requested_date }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="reason" class="form-label">Reason</label>
+      <textarea class="form-control" name="reason" id="reason" rows="3" required>{{ req.reason }}</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Update Request</button>
+    <a href="/view_requests" class="btn btn-secondary">Cancel</a>
+  </form>
+
+  <script>
+  const requestType = document.getElementById("request_type");
+  const desiredShiftGroup = document.getElementById("desired-shift-group");
+
+  function toggleDesiredShift() {
+    if (requestType.value === "Shift Swap") {
+      desiredShiftGroup.style.display = "block";
+    } else {
+      desiredShiftGroup.style.display = "none";
+      document.getElementById("desired_shift").value = ""; // clear it
+    }
+  }
+
+  // Run on load and on change
+  requestType.addEventListener("change", toggleDesiredShift);
+  window.addEventListener("DOMContentLoaded", toggleDesiredShift);
+</script>
+
+</body>
+</html>

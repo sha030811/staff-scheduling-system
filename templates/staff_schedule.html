@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Shifts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #f9fcff;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 30px;
+    }
+
+    h3 {
+      color: #0d6efd;
+      margin-bottom: 20px;
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      font-size: 30px;
+      font-weight: 500px;
+      text-align: center;
+    }
+
+    #calendar {
+      margin: 0 auto;
+      font-size: 20px;
+    }
+
+    .fc-daygrid-day-frame {
+      min-height: 120px;
+    }
+
+    .fc-event {
+      color: white !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .fc-day-past {
+      background-color: #f0f0f0 !important;
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+        .shift-info {
+      font-size: 20px;
+      font-family: Georgia, 'Times New Roman', Times, serif;
+    }
+
+    .shift-info h5 {
+      font-size: 1.2rem; /* Heading size */
+    }
+
+    .shift-info ul {
+      padding-left: 20px;
+    }
+
+    .shift-info li {
+      margin-bottom: 5px;
+    }
+
+
+    @media (max-width: 768px) {
+      .fc-toolbar-title {
+        font-size: 1.2rem !important;
+      }
+
+      #calendar {
+        font-size: 14px !important;
+      }
+
+      .modal-content {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h3>🗓️ My Scheduled Shifts</h3>
+
+<div class="alert alert-info shift-info">
+  <h5 class="mb-2">🕒 Hospital Shift Timings</h5>
+  <ul class="mb-0">
+    <li><strong>Morning Shift:</strong> 7:00 AM – 3:00 PM</li>
+    <li><strong>Evening Shift:</strong> 3:00 PM – 11:00 PM</li>
+    <li><strong>Night Shift:</strong> 11:00 PM – 7:00 AM</li>
+    <li><strong>Full Day Shift:</strong> 7:00 AM – 7:00 PM</li>
+    <li><strong>On-Call:</strong> As needed</li>
+  </ul>
+</div>
+      <a href="/staff" class="btn btn-outline-secondary mb-2">
+        <i class="bi bi-arrow-left-circle"></i> Back to Dashboard
+      </a>
+
+
+    <div id="calendar"></div>
+  </div>
+
+  <!-- 🟡 Shift Detail Modal -->
+  <div class="modal fade" id="shiftDetailModal" tabindex="-1" aria-labelledby="shiftDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content border-0">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="shiftDetailModalLabel">📋 Shift Details</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>👤 Title:</strong> <span id="shiftDetailTitle"></span></p>
+          <p><strong>📅 Date:</strong> <span id="shiftDetailDate"></span></p>
+          <p><strong>⏰ Time:</strong> <span id="shiftDetailTime"></span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const calendarEl = document.getElementById('calendar');
+      const shiftDetailModal = new bootstrap.Modal(document.getElementById('shiftDetailModal'));
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: '/get_staff_shifts',
+
+        eventClick: function (info) {
+          const title = info.event.title;
+          const timeMatch = title.match(/\((.*?)\)/);
+          const time = timeMatch ? timeMatch[1].replace(' Shift', '') : 'Unknown';
+          const cleanTitle = title.replace(/\s*\(.*?\)/, '');
+          const dateStr = info.event.startStr;
+
+          document.getElementById('shiftDetailTitle').textContent = cleanTitle || 'N/A';
+          document.getElementById('shiftDetailDate').textContent = dateStr || 'N/A';
+          document.getElementById('shiftDetailTime').textContent = time || 'N/A';
+
+          shiftDetailModal.show();
+        },
+
+        eventDidMount: function (info) {
+          const shiftDate = new Date(info.event.startStr);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          if (shiftDate < today) {
+            info.el.style.backgroundColor = '#d3d3d3';
+            info.el.style.borderColor = '#a9a9a9';
+            info.el.style.cursor = 'not-allowed';
+          }
+
+          const titleWrapper = document.createElement('div');
+          titleWrapper.style.display = 'flex';
+          titleWrapper.style.justifyContent = 'space-between';
+          titleWrapper.style.alignItems = 'center';
+
+          const titleSpan = document.createElement('span');
+          titleSpan.textContent = info.event.title;
+
+          titleWrapper.appendChild(titleSpan);
+          info.el.innerHTML = '';
+          info.el.appendChild(titleWrapper);
+        }
+      });
+
+      calendar.render();
+    });
+  </script>
+</body>
+</html>

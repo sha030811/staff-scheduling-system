@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Notification Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <style>
+    body {
+      background: #f2f6fc;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .container {
+      max-width: 750px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      font-weight: 600;
+      color: #333;
+    }
+    .tab-content {
+      margin-top: 20px;
+    }
+    .tab-buttons button {
+      margin-right: 10px;
+    }
+    .notif-card {
+      position: relative;
+      background: #fff;
+      border-left: 5px solid #007bff;
+      padding: 12px 36px 12px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      line-height: 2;
+    }
+
+    .notif-card .delete-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        padding-right: 30;
+        padding-bottom: 20;
+        border: 2px;
+        background: transparent;
+        color: red;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+        .notif-card strong {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 4px;
+    color: #222;
+    }
+
+    .notif-card .text-muted {
+    font-size: 15px;
+    color: #888;
+    }
+
+    .notif-card small {
+    color: #666;
+    display: block;
+    margin: 6px 0;
+    }
+
+    .notif-card p {
+    margin: 8px 0 0;
+    font-size: 18px;
+    color: #333;
+    }
+
+    .notif-card.high { border-color: red; }
+    .notif-card.low { border-color: green; }
+    .hidden { display: none; }
+
+.filter-sort-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 equal columns */
+  gap: 10px; /* space between controls */
+  margin-bottom: 20px;
+}
+
+.filter-sort-controls select,
+.filter-sort-controls input[type="date"],
+.filter-sort-controls input[type="text"] {
+  width: 100%; /* fill the grid cell */
+  padding: 12px 20px;
+  border-radius: 4px;
+  border: 1px solid #3d3c3c;
+  font-size: 14px;
+}
+
+/* Responsive: stack vertically on small screens */
+@media (max-width: 600px) {
+  .filter-sort-controls {
+    grid-template-columns: 1fr; /* single column */
+  }
+}
+
+  </style>
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="toast-container position-fixed top-0 end-0 p-3">
+        {% for category, message in messages %}
+          <div class="toast align-items-center text-bg-{{ category }} border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+              <div class="toast-body">{{ message }}</div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+
+  <div class="container">
+    <h2>🔔 Notification Management</h2>
+
+    <div class="tab-buttons my-3">
+      <button class="btn btn-primary" id="tabSend">Send Notification</button>
+      <button class="btn btn-outline-primary" id="tabHistory">Notification History</button>
+    </div>
+
+      <!-- === SEND FORM === -->
+    <div id="sendForm" class="tab-content">
+      <form id="notificationForm">   
+  <div id="messageTypeContainer" class="hidden mb-3">
+    <label for="messageType">Message Type</label>
+    <select id="messageType" name="message_type" class="form-select">
+      <option value="public">🌐 Public — All Staff in Department</option>
+      <option value="private">👤 Private — A Specific Staff</option>
+    </select>
+  </div>
+
+    <div id="targetOptionGroup" class="mb-3">
+    <label for="targetOption">Send To</label>
+    <select id="targetOption" class="form-select">
+        <option value="">-- Select --</option>
+        <option value="ALL:HOSPITAL">📢 All Departments</option>
+        <option value="ALL:DOCTORS">👨‍⚕️ All Doctors</option>
+        <option value="department">🏥 Specific Department</option>
+        <option value="user">👤 User from Department</option>
+    </select>
+    </div>
+
+  <div id="departmentSelectGroup" class="mb-3" style="display: none;">
+    <label for="departmentSelect">Select Department</label>
+    <select id="departmentSelect" class="form-select">
+      <option value="">-- Select Department --</option>
+    </select>
+  </div>
+
+    <div id="roleSelectGroup" class="mb-3" style="display: none;">
+    <label for="roleSelect">Choose Role</label>
+    <select id="roleSelect" class="form-select">
+        <option value="">-- Select Role --</option>
+        <option value="doctor">Doctor</option>
+        <option value="staff">Staff</option>
+    </select>
+    </div>
+
+  <div id="userSelectGroup" class="mb-3" style="display: none;">
+    <label for="userSelect">Select User</label>
+    <select id="userSelect" class="form-select">
+      <option value="">-- Select User --</option>
+    </select>
+  </div>
+
+  <input type="hidden" name="recipient_id" id="recipient_id">
+
+  <label>Title</label>
+  <input type="text" name="title" class="form-control" required>
+
+  <label>Message</label>
+  <textarea name="message" rows="4" class="form-control" required></textarea>
+
+  <label>Priority</label>
+  <select name="priority" class="form-select">
+    <option value="">-- Select  --</option>
+    <option value="Low">Low</option>
+    <option value="Normal">Normal</option>
+    <option value="High">High</option>
+  </select>
+
+  <button type="submit" class="btn btn-success w-100 mt-3">📨 Send Notification</button>
+</form>
+    </div>
+
+    <!-- === HISTORY SECTION === -->
+    <div id="historySection" class="tab-content" style="display: none;">
+      <input type="text" id="searchBox" class="form-control mb-3" placeholder="Search title/message..." style="margin-left: 1px;"/>
+      <div class="filter-sort-controls mb-3">
+        <select id="filterPriority" class="form-select" style= "display: inline-block; margin-left: 1px;">
+            <option value="">All Priorities</option>
+            <option value="Low">Low</option>
+            <option value="Normal">Normal</option>
+            <option value="High">High</option>
+        </select>
+
+        <input type="date" id="filterDate" style="display: inline-block; margin-left: 1px;" />
+
+        <input type="text" id="filterSender" placeholder="Filter by sender" style="display: inline-block; margin-left: 1px;" />
+
+        <select id="sortOrder" class="form-select" style="display: inline-block; margin-left: 1px;">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="priority">Priority</option>
+        </select>
+        </div>
+            <div id="notifContainer"></div>
+        </div>
+    </div>
+
+
+  <!-- Toast container -->
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">Notification</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="toastBody"></div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this notification?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Detail Modal -->
+<div class="modal fade" id="notificationDetailModal" tabindex="-1" aria-labelledby="notificationDetailLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="notificationDetailLabel">Notification Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h6 id="detailTitle"></h6>
+        <p><small><strong>From:</strong> <span id="detailSender"></span></small></p>
+        <p><small><strong>Priority:</strong> <span id="detailPriority"></span></small></p>
+        <p><small><strong>Date:</strong> <span id="detailDate"></span></small></p>
+        <hr>
+        <p id="detailMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  <script>
+    const tabSend = document.getElementById('tabSend');
+    const tabHistory = document.getElementById('tabHistory');
+    const sendForm = document.getElementById('sendForm');
+    const historySection = document.getElementById('historySection');
+    const searchBox = document.getElementById('searchBox');
+
+    tabSend.onclick = () => {
+      sendForm.style.display = 'block';
+      historySection.style.display = 'none';
+      tabSend.classList.replace('btn-outline-primary', 'btn-primary');
+      tabHistory.classList.replace('btn-primary', 'btn-outline-primary');
+    };
+
+
+    tabHistory.onclick = () => {
+      sendForm.style.display = 'none';
+      historySection.style.display = 'block';
+      tabSend.classList.replace('btn-primary', 'btn-outline-primary');
+      tabHistory.classList.replace('btn-outline-primary', 'btn-primary');
+      loadNotifications();
+    };
+
+    let allUsers = [];
+    let notificationData = [];
+
+    async function loadRecipients() {
+    const res = await axios.get('/notifications/recipients');
+    const data = res.data;
+    allUsers = data.recipients;
+    document.body.classList.toggle('doctor', data.role === 'doctor');
+  
+    const targetOptionGroup = document.getElementById('targetOptionGroup');
+    const targetOption = document.getElementById('targetOption');
+    const messageTypeContainer = document.getElementById('messageTypeContainer');
+    const messageTypeSelect = document.getElementById('messageType');
+    const userSelectGroup = document.getElementById('userSelectGroup');
+    const userSelect = document.getElementById('userSelect');
+    const recipientInput = document.getElementById('recipient_id');
+    const departmentSelect = document.getElementById('departmentSelect');
+
+   if (data.role === 'admin') {
+      // Show full Send To select for admin
+      targetOption.innerHTML = `
+        <option value="">-- Select --</option>
+        <option value="ALL:HOSPITAL">📢 All Departments</option>
+        <option value="ALL:DOCTORS">👨‍⚕️ All Doctors</option>x
+        <option value="department">🏥 Specific Department</option>
+        <option value="user">👤 User from Department</option>
+      `;
+
+     // Clear existing options before populating
+    departmentSelect.innerHTML = '<option value="">-- Select Department --</option>';
+
+    // Populate departments select
+    data.departments.forEach(dep => {
+        const option = document.createElement('option');
+        option.value = dep;
+        option.textContent = dep;
+        departmentSelect.appendChild(option);
+    });
+      recipientInput.value = '';
+        targetOption.onchange = function () {
+        recipientInput.value = this.value;
+
+        if (this.value === 'department') {
+            departmentSelect.parentElement.style.display = 'block';
+            userSelectGroup.style.display = 'none';
+        } else if (this.value === 'user') {
+            departmentSelect.parentElement.style.display = 'block';
+            userSelectGroup.style.display = 'none';
+        } else {
+            departmentSelect.parentElement.style.display = 'none';
+            userSelectGroup.style.display = 'none';
+        }
+        };
+
+    } else if (data.role === 'doctor') {
+      // Doctor role handling
+      targetOptionGroup.style.display = 'none';
+      messageTypeContainer.classList.remove('hidden');
+      userSelectGroup.style.display = 'none';
+
+      messageTypeSelect.innerHTML = `
+        <option value="public">🌐 Public — All Staff in Department</option>
+        <option value="private">👤 Private — A Specific Staff</option>
+      `;
+
+      recipientInput.value = `DEPT:${data.department}`;
+
+      messageTypeSelect.onchange = function () {
+        if (this.value === 'public') {
+          recipientInput.value = `DEPT:${data.department}`;
+          userSelectGroup.style.display = 'none';
+          userSelect.innerHTML = '';
+        } else {
+          userSelectGroup.style.display = 'block';
+          userSelect.innerHTML = '<option value="">-- Select User --</option>';
+
+          const filteredUsers = data.recipients.filter(user => user.department === data.department);
+
+          filteredUsers.forEach(user => {
+            const opt = document.createElement('option');
+            opt.value = user.id;
+            opt.textContent = `👤 ${user.name}`;
+            userSelect.appendChild(opt);
+          });
+
+          userSelect.onchange = function () {
+            recipientInput.value = this.value;
+          };
+        }
+      };
+
+      messageTypeSelect.dispatchEvent(new Event('change'));
+    }
+    
+
+    // Show role select when "User from Department" is selected and department is chosen
+document.getElementById('departmentSelect').addEventListener('change', function() {
+  const selectedDept = this.value;
+  const targetVal = targetOption.value;
+
+  // Reset user select
+  userSelect.innerHTML = '<option value="">-- Select User --</option>';
+  recipientInput.value = '';
+
+  if (targetVal === 'user' && selectedDept) {
+    // Show role select dropdown
+    roleSelectGroup.style.display = 'block';
+    userSelectGroup.style.display = 'none';  // wait until role is selected
+  } else {
+    roleSelectGroup.style.display = 'none';
+    userSelectGroup.style.display = 'none';
+  }
+
+});
+
+departmentSelect.addEventListener('change', function () {
+  if (targetOption.value === 'department') {
+    if (this.value) {
+      recipientInput.value = `DEPT:${this.value}`;
+    } else {
+      recipientInput.value = '';  // no department selected
+    }
+  }
+});
+
+// Populate users based on selected role and department
+roleSelect.addEventListener('change', function() {
+  const selectedRole = this.value;
+  const selectedDept = departmentSelect.value;
+
+  // Reset recipient input & user select
+  userSelect.innerHTML = '<option value="">-- Select User --</option>';
+  recipientInput.value = '';
+
+  if (selectedRole && selectedDept) {
+    // Filter users by department and role
+    const filteredUsers = allUsers.filter(u =>
+      u.department === selectedDept && u.role === selectedRole
+    );
+    
+    // Populate user dropdown
+    filteredUsers.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = `${u.name} (${u.role})`;
+      userSelect.appendChild(opt);
+    });
+
+    // Show user select dropdown
+    userSelectGroup.style.display = 'block';
+  } else {
+    userSelectGroup.style.display = 'none';
+  }
+});
+
+// Update hidden recipient id when user selected
+userSelect.addEventListener('change', function() {
+  recipientInput.value = this.value;
+});
+}
+</script>
+<script>
+document.getElementById('notificationForm').addEventListener('submit', async (e) => {
+  e.preventDefault();  // Prevent default form submission (page reload)
+
+  const form = e.target;
+  const formData = new FormData(form);
+
+  try {
+    const response = await axios.post('/notifications/send', formData);
+    showToast(response.data.message || 'Notification sent!');
+    form.reset();
+    // Optionally reload recipients or history if needed:
+    loadRecipients();
+    loadNotifications();
+  } catch (error) {
+    alert('Failed to send notification.');
+    console.error(error);
+  }
+});
+</script>
+
+
+<script>
+let deleteId = null;
+let notificationsData = []; 
+
+function addViewDetailListeners() {
+  document.querySelectorAll('.view-detail-btn').forEach(button => {
+    button.addEventListener('click', async () => {
+      const id = button.getAttribute('data-id');
+      if (!id) return;
+
+      const notification = notificationsData.find(n => n.id == id);  // use notificationsData here
+      if (!notification) return;
+
+      document.getElementById('detailTitle').textContent = notification.title;
+      document.getElementById('detailSender').textContent = notification.sender;
+      document.getElementById('detailPriority').textContent = notification.priority;
+      document.getElementById('detailDate').textContent = notification.created_at;
+      document.getElementById('detailMessage').textContent = notification.message;
+
+      const modal = new bootstrap.Modal(document.getElementById('notificationDetailModal'));
+      modal.show();
+    });
+  });
+}
+
+function showDeleteModal(id) {
+  deleteId = id;
+  const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+  modal.show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+  if (!deleteId) return;
+
+  try {
+    const resp = await fetch(`/notifications/delete/${deleteId}`, { method: 'POST' });
+    if (resp.ok) {
+      showToast('Notification deleted successfully!');
+      await loadNotifications();
+    } else {
+      showToast('Failed to delete notification');
+    }
+  } catch (err) {
+    showToast('Error deleting notification');
+  }
+
+  const modalEl = document.getElementById('deleteConfirmModal');
+  const modal = bootstrap.Modal.getInstance(modalEl);
+  modal.hide();
+
+  deleteId = null;
+});
+
+function addDeleteListeners() {
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const id = button.getAttribute('data-id');
+      if (!id) return;
+      showDeleteModal(id);
+    });
+  });
+}
+
+async function loadNotifications() {
+  const res = await fetch('/notifications/history');
+  const data = await res.json();
+  notificationsData = data;  // save here for global use
+
+  const container = document.getElementById('notifContainer');
+
+  const filterPriority = document.getElementById('filterPriority');
+  const filterDate = document.getElementById('filterDate');
+  const filterSender = document.getElementById('filterSender');
+  const sortOrder = document.getElementById('sortOrder');
+  const searchBox = document.getElementById('searchBox');
+
+ 
+  function renderList() {
+    let filtered = notificationsData.filter(n => {
+      const searchTerm = searchBox.value.toLowerCase();
+      if (!n.title.toLowerCase().includes(searchTerm) && !n.message.toLowerCase().includes(searchTerm)) {
+        return false;
+      }
+      if (filterPriority.value && n.priority !== filterPriority.value) return false;
+      if (filterSender.value && !n.sender.toLowerCase().includes(filterSender.value.toLowerCase())) return false;
+      if (filterDate.value) {
+        const notifDate = n.created_at.split(' ')[0];
+        if (notifDate !== filterDate.value) return false;
+      }
+      return true;
+    });
+
+    filtered.sort((a, b) => {
+      if (sortOrder.value === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+      if (sortOrder.value === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+      if (sortOrder.value === 'priority') {
+        const priorityRank = { 'High': 3, 'Normal': 2, 'Low': 1 };
+        return (priorityRank[b.priority] || 0) - (priorityRank[a.priority] || 0);
+      }
+      return 0;
+    });
+
+    container.innerHTML = '';
+    if (filtered.length === 0) {
+      container.innerHTML = '<p>No notifications found.</p>';
+    } else {
+      filtered.forEach(n => {
+        const div = document.createElement('div');
+        div.className = `notif-card ${n.priority.toLowerCase()}`;
+        div.innerHTML = `
+          <strong>${n.title}</strong> <span class="text-muted">(${n.created_at})</span><br>
+          <small>From: ${n.sender} | Priority: ${n.priority}</small>
+          <p>${n.message}</p>
+          <button class="delete-btn" data-id="${n.id}">❌</button>
+          <button class="view-detail-btn btn btn-sm btn-primary" data-id="${n.id}">View Details</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    addViewDetailListeners();
+    addDeleteListeners();
+  }
+
+  // Attach filter and sort listeners to re-render list on input
+  [searchBox, filterPriority, filterDate, filterSender, sortOrder].forEach(el => {
+    el.addEventListener('input', renderList);
+  });
+
+  // Initial render call
+  renderList();
+}
+
+// Utility: Show Bootstrap toast notification (assumes your toast HTML exists)
+function showToast(message) {
+  const toastBody = document.getElementById('toastBody');
+  toastBody.textContent = message;
+
+  const toastEl = document.getElementById('liveToast');
+  const toast = new bootstrap.Toast(toastEl);
+  toast.show();
+}
+
+// Initial load of recipients or any other necessary data (keep your existing function)
+loadRecipients();
+
+</script>
+{% block content %}
+  {% endblock %}
+</body>
+</html>

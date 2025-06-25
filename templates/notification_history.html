@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Notification History</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .notif-card {
+      background: #f9f9f9;
+      border-left: 5px solid #007bff;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .notif-card.high { border-color: red; }
+    .notif-card.low { border-color: green; }
+  </style>
+</head>
+<body class="p-4">
+  <h2>📋 Notification History</h2>
+  <input type="text" id="searchBox" class="form-control my-3" placeholder="Search by title or message..." />
+  <div id="notifContainer"></div>
+
+  <script>
+    async function loadNotifications() {
+      const res = await fetch('/auth/notifications/history');
+      const data = await res.json();
+      const container = document.getElementById('notifContainer');
+
+      function renderList(filter = '') {
+        container.innerHTML = '';
+        const filtered = data.filter(n => 
+          n.title.toLowerCase().includes(filter.toLowerCase()) ||
+          n.message.toLowerCase().includes(filter.toLowerCase())
+        );
+        if (filtered.length === 0) {
+          container.innerHTML = '<p>No notifications found.</p>';
+        } else {
+          filtered.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `notif-card ${n.priority.toLowerCase()}`;
+            div.innerHTML = `
+              <strong>${n.title}</strong> <span class="text-muted">(${n.created_at})</span><br>
+              <small>From: ${n.sender} | Priority: ${n.priority}</small>
+              <p>${n.message}</p>
+            `;
+            container.appendChild(div);
+          });
+        }
+      }
+
+      renderList();
+
+      document.getElementById('searchBox').addEventListener('input', function () {
+        renderList(this.value);
+      });
+    }
+
+    loadNotifications();
+  </script>
+</body>
+</html>

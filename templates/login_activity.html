@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Activity Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+     body {
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      background-color: #f8f9fa;
+      margin: 0;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 220px;
+      background-color: #004487;
+      color: white;
+      padding-top: 80px;
+      transform: translateX(-100%);
+      transition: transform 0.15s ease;
+      overflow: hidden;
+      z-index: 1000;
+    }
+
+    .sidebar.show {
+      transform: translateX(0);
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: white;
+      text-decoration: none;
+      padding: 20px 20px;
+      font-weight: bold;
+    }
+
+    .sidebar a:hover {
+      background-color: #495057;
+    }
+
+    .sidebar i {
+      font-size: 22px;
+    }
+
+    .sidebar-title {
+      font-size: 24px;
+      padding: 20px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar .label {
+      display: inline;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .sidebar.collapsed .label {
+      opacity: 0;
+      visibility: hidden;
+      width: 0;
+      display: inline-block;
+    }
+
+    .mobile-toggle, .toggle-btn {
+      position: fixed;
+      top: 15px;
+      background-color: #004487;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 20px;
+      z-index: 1101;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .mobile-toggle {
+      left: 15px;
+      display: none;
+    }
+
+    .toggle-btn {
+      left: 230px;
+      display: none;
+    }
+
+    .main {
+      margin-left: 0;
+      padding: 100px 30px 30px 30px;
+      transition: margin-left 0.3s ease;
+    }
+
+    .main {
+      padding: 40px;
+      transition: transform 0.15s ease;
+    }
+
+    body.sidebar-open .main {
+      transform: translateX(220px);
+    }
+
+    .summary-card {
+      border-radius: 10px;
+      padding: 20px;
+      color: white;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+
+     .login_activity-title {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 2rem;
+      color: #343a40;
+      padding-top: 60px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #dee2e6;
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .table-wrapper {
+      margin-top: 30px;
+    }
+    .chart-container {
+        margin-top: 30px;
+        padding: 20px;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 0 12px rgba(0,0,0,0.05);
+    }
+    
+    .tab-pane {
+      padding-top: 0 !important;
+      margin-top: 0 !important;
+    }
+
+   .map-wrapper {
+      margin-top: 30px;
+    }
+
+    .tab-pane#map {
+      margin-top: 10px !important;
+      padding-top: 0 !important;
+    }
+
+     @media (max-width: 768px) {
+    .mobile-toggle {
+            display: block;
+        }
+        
+    .main {
+        padding-top: 40px !important; /* ✅ Push content down on mobile */
+    }
+
+    }
+
+    @media (min-width: 769px) {
+      .toggle-btn {
+        display: block;
+        left: 230px;
+      }
+
+      .sidebar {
+        transform: translateX(0);
+        width: 220px;
+      }
+
+      .sidebar.collapsed {
+        width: 70px;
+      }
+
+      .sidebar.collapsed ~ .toggle-btn {
+        left: 85px;
+      }
+
+      .main {
+        margin-left: 220px;
+        transition: margin-left 0.3s ease;
+      }
+
+      .sidebar.collapsed + .toggle-btn {
+          left: 85px;
+        }
+
+      .sidebar.collapsed ~ .main {
+        margin-left: 70px !important;
+      }
+         }
+        .chart-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+     }
+  </style>
+</head>
+<body>
+
+    <!-- Toggle buttons -->
+<button id="mobileToggle" class="mobile-toggle" onclick="toggleSidebar()">
+  <i class="bi bi-list"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+  <div class="sidebar-title">
+    <i class="bi bi-bar-chart"></i> <span class="label">Reports</span>
+  </div>
+  <a href="/attendance_report"><i class="bi bi-calendar-check"></i> <span class="label">Attendance</span></a>
+  <a href="/shift_coverage"><i class="bi bi-clock-history"></i> <span class="label">Shift Coverage</span></a>
+  <a href="/request_analysis"><i class="bi bi-bar-chart-line"></i> <span class="label">Request Analysis</span></a>
+  <a href="/staff_overview"><i class="bi bi-people"></i> <span class="label">Staff Overview</span></a>
+  <a href="/login_activity"><i class="bi bi-box-arrow-in-right"></i> <span class="label">Login Activity</span></a>
+  <a href="/reports_dashboard"><i class="bi bi-arrow-left-circle"></i> <span class="label">Back to Dashboard</span></a>
+</div>
+
+<button class="toggle-btn d-none d-md-block" onclick="toggleSidebarDesktop()">☰</button>
+<!-- Main Content -->
+<div class="main" id="main">
+  <h2 class="login_activity-title">🔐 Login Activity Report</h2>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-6 mb-3">
+      <div class="bg-primary summary-card">
+        <h5>Total Login Attempts</h5>
+        <h3>{{ total_attempts }}</h3>
+      </div>
+    </div>
+    <div class="col-6 mb-3">
+      <div class="bg-success summary-card">
+        <h5>Successful Logins</h5>
+        <h3>{{ success_count }}</h3>
+      </div>
+    </div>
+    <div class="col-6 mb-3">
+      <div class="bg-danger summary-card">
+        <h5>Failed Logins</h5>
+        <h3>{{ fail_count }}</h3>
+      </div>
+    </div>
+    <div class="col-6 mb-3">
+      <div class="bg-secondary summary-card">
+        <h5>Unique Users</h5>
+        <h3>{{ unique_users }}</h3>
+      </div>
+    </div>
+  </div>
+  
+  <ul class="nav nav-tabs" id="chartTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="trend-tab" data-bs-toggle="tab" data-bs-target="#trend" type="button" role="tab">📈 Trend</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="pie-tab" data-bs-toggle="tab" data-bs-target="#pie" type="button" role="tab">🍩 Status by Department</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="map-tab" data-bs-toggle="tab" data-bs-target="#map" type="button" role="tab">🗺️ Login Map</button>
+  </li>
+</ul>
+
+<div class="tab-content mt-3" id="chartTabContent">
+
+  <!-- 📈 Trend Tab -->
+  <div class="tab-pane fade show active" id="trend" role="tabpanel">
+    <div class="d-flex justify-content-end gap-2 mb-2">
+      <button class="btn btn-danger btn-sm" onclick="exportLoginPDF()">
+        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+      </button>
+      <button class="btn btn-success btn-sm" onclick="exportLoginExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+    </div>
+    <div class="chart-container">
+      <h4>📈 Login Trends Over Time</h4>
+      <canvas id="loginTrendChart" style="max-height: 300px;"></canvas>
+
+      <!-- 🔁 Reset Button -->
+      <button onclick="resetLoginTable()" class="btn btn-outline-secondary btn-sm mt-3">
+        🔁 Show All Dates
+      </button>
+
+      <!-- 📅 Clicked Date Label -->
+      <h5 id="filterLabel" class="text-primary mt-4"></h5>
+
+      <!-- ✅ Status Filter -->
+      <div class="mb-3" style="max-width: 250px;">
+        <label for="statusFilter" class="form-label">Filter by Status:</label>
+        <select id="statusFilter" class="form-select" onchange="applyFilters()">
+          <option value="All" selected>All</option>
+          <option value="Success">Success</option>
+          <option value="Failed">Failed</option>
+        </select>
+      </div>
+
+      <!-- 🏥 Department Filter -->
+      <div style="max-width: 250px;">
+        <label for="deptFilterTable" class="form-label">Filter by Department:</label>
+        <select id="deptFilterTable" class="form-select" onchange="applyFilters()">
+          <option value="All" selected>All</option>
+          {% for dept in departments %}
+            <option value="{{ dept }}">{{ dept }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- 📋 Login Records Table -->
+    <div class="table-wrapper">
+      <h4 class="mt-4">📋 Login Records</h4>
+      <table class="table table-bordered table-striped">
+        <thead class="table-dark text-center">
+          <tr>
+            <th>User ID</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Login Time</th>
+            <th>Status</th>
+            <th>IP Address</th>
+            <th>Attempted Username</th>
+            <th>User Agent</th>
+          </tr>
+        </thead>
+        <tbody id="loginTableBody">
+          {% for record in login_records %}
+          <tr>
+            <td>{{ record[0].user_id or '—' }}</td>
+            <td>{{ record[1] or '—' }}</td>
+            <td>{{ record[2] or '—' }}</td>
+            <td>{{ record[3] or '—' }}</td>
+            <td>{{ record[0].timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ record[0].status }}</td>
+            <td>{{ record[0].ip_address }}</td>
+            <td>{{ record[0].attempted_username or '—' }}</td>
+            <td>{{ record[0].user_agent or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 🍩 Pie Tab -->
+  <div class="tab-pane fade" id="pie" role="tabpanel">
+    <div class="d-flex justify-content-end gap-2 mb-2">
+      <button class="btn btn-danger btn-sm" onclick="exportPiePDF()">
+        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+      </button>
+      <button class="btn btn-success btn-sm" onclick="exportPieExcel()">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel
+      </button>
+    </div>
+<div class="chart-container">
+<div class="row mb-3" style="max-width: 600px;">
+  <div class="col-md-6">
+    <label for="deptFilter" class="form-label">Select Department:</label>
+    <select id="deptFilter" class="form-select">
+      <option value="All" selected>All</option>
+      {% for dept in departments %}
+        <option value="{{ dept }}">{{ dept }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label for="statusFilterPie" class="form-label">Select Status:</label>
+    <select id="statusFilterPie" class="form-select">
+      <option value="All" selected>All</option>
+      <option value="Success">Success</option>
+      <option value="Failed">Failed</option>
+    </select>  
+  </div>
+</div>
+
+      <canvas id="loginPieChart" style="max-height: 500px;"></canvas>
+    </div>
+
+    <!-- 📋 Department Login Records Table -->
+    <div class="table-wrapper mt-4">
+      <h4>📋 Department Login Records</h4>
+      <table class="table table-bordered table-striped">
+        <thead class="table-dark text-center">
+          <tr>
+            <th>User ID</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Login Time</th>
+            <th>Status</th>
+            <th>IP Address</th>
+            <th>Attempted Username</th>
+            <th>User Agent</th>
+          </tr>
+        </thead>
+        <tbody id="deptLoginTableBody">
+          {% for record in login_records %}
+          <tr data-department="{{ record[3] }}">
+            <td>{{ record[0].user_id or '—' }}</td>
+            <td>{{ record[1] or '—' }}</td>
+            <td>{{ record[2] or '—' }}</td>
+            <td>{{ record[3] or '—' }}</td>
+            <td>{{ record[0].timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ record[0].status }}</td>
+            <td>{{ record[0].ip_address }}</td>
+            <td>{{ record[0].attempted_username or '—' }}</td>
+            <td>{{ record[0].user_agent or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 🗺️ Map Tab -->
+  <div class="tab-pane fade" id="map" role="tabpanel">
+  <div class="chart-container mb-4">
+  <h5>🧭 Map Filters</h5>
+  <div class="row">
+    <!-- Department Filter -->
+    <div class="col-md-4 mb-2">
+      <label for="mapDeptFilter" class="form-label">Department</label>
+      <select id="mapDeptFilter" class="form-select">
+        <option value="All" selected>All</option>
+        {% for dept in departments %}
+        <option value="{{ dept }}">{{ dept }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="col-md-4 mb-2">
+      <label for="mapStatusFilter" class="form-label">Login Status</label>
+      <select id="mapStatusFilter" class="form-select">
+        <option value="All" selected>All</option>
+        <option value="Success">Success</option>
+        <option value="Failed">Failed</option>
+      </select>
+    </div>
+
+    <!-- Date Filter (optional) -->
+    <div class="col-md-4 mb-2">
+      <label for="mapDateFilter" class="form-label">Date</label>
+      <input type="date" id="mapDateFilter" class="form-control">
+    </div>
+  </div>
+</div>
+
+<!-- ✅ MAP AT THE BOTTOM -->
+    <div class="map-wrapper mt-4">
+      <h5>🗺️ Geolocation Map</h5>
+      <div class="d-flex justify-content-center">
+    <div id="loginMap" style="height: 500px; width: 80%; border: 1px solid #ccc; border-radius: 10px;"></div>
+  </div>
+</div>
+
+  <div class="table-wrapper mt-4">
+  <h5>📋 Related Records</h5>
+  <table class="table table-bordered table-striped">
+    <thead class="table-dark text-center">
+      <tr>
+        <th>Username</th>
+        <th>Department</th>
+        <th>Status</th>
+        <th>IP Address</th>
+        <th>City</th>
+        <th>Country</th>
+        <th>Login Time</th>
+      </tr>
+    </thead>
+    <tbody id="mapTableBody">
+      {% for loc in location_data %}
+      <tr
+          data-department="{{ loc.department }}"
+          data-status="{{ loc.status }}"
+          data-date="{{ loc.time[:10] }}">
+          <td>{{ loc.username }}</td>
+          <td>{{ loc.department }}</td>
+          <td>{{ loc.status }}</td>
+          <td>{{ loc.ip }}</td>
+          <td>{{ loc.city }}</td> 
+          <td>{{ loc.country }}</td>
+          <td>{{ loc.time }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>
+</div>
+    
+</div> <!-- ✅ End of tab-content -->
+
+<div id="pdf-trend-content" style="display: none;">
+  <h4>📈 Login Trends Report</h4>
+  <p id="pdfFilterLabel" class="mb-3 text-primary"></p>
+
+  <div id="pdfTrendChartWrapper" class="mb-3"></div>
+
+  <table class="table table-bordered table-striped mt-3">
+    <thead class="table-dark text-center">
+      <tr>
+        <th>User ID</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Department</th>
+        <th>Login Time</th>
+        <th>Status</th>
+        <th>IP Address</th>
+        <th>Attempted Username</th>
+        <th>User Agent</th>
+      </tr>
+    </thead>
+    <tbody id="pdfLoginTableBody"></tbody>
+  </table>
+</div>
+
+<!-- 🔒 Hidden PDF content for Pie tab -->
+<div id="pdf-pie-content" style="display: none;">
+  <h4>🍩 Login Status by Department Report</h4>
+  <p id="pdfPieFilterLabel" class="mb-3 text-primary"></p>
+
+  <div id="pdfPieChartWrapper" style="margin-bottom: 20px;"></div>
+
+  <table class="table table-bordered table-striped">
+    <thead class="table-dark text-center">
+      <tr>
+        <th>User ID</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Department</th>
+        <th>Login Time</th>
+        <th>Status</th>
+        <th>IP Address</th>
+        <th>Attempted Username</th>
+        <th>User Agent</th>
+      </tr>
+    </thead>
+    <tbody id="pdfPieTableBody"></tbody>
+  </table>
+</div>
+
+ <!-- Data Blocks -->
+<script id="trendLabels" type="application/json">{{ trend_labels | tojson }}</script>
+<script id="trendCounts" type="application/json">{{ trend_counts | tojson }}</script>
+<script id="successCount" type="application/json">{{ success_count }}</script>
+<script id="failCount" type="application/json">{{ fail_count }}</script>
+<script id="locationData" type="application/json">{{ location_data | tojson }}</script>
+<script id="failedLabels" type="application/json">{{ failed_labels | tojson }}</script>
+<script id="failedCounts" type="application/json">{{ failed_counts | tojson }}</script>
+<script id="successLabels" type="application/json">{{ success_labels | tojson }}</script>
+<script id="successCounts" type="application/json">{{ success_counts | tojson }}</script>
+<script id="statusByDept" type="application/json">{{ status_by_dept | tojson }}</script>
+<script>
+  const trendLabels = JSON.parse(document.getElementById("trendLabels").textContent);
+  const trendCounts = JSON.parse(document.getElementById("trendCounts").textContent);
+  const successCount = JSON.parse(document.getElementById("successCount").textContent);
+  const failCount = JSON.parse(document.getElementById("failCount").textContent);
+  const locations = JSON.parse(document.getElementById("locationData").textContent);
+  const failedLabels = JSON.parse(document.getElementById("failedLabels").textContent);
+  const failedCounts = JSON.parse(document.getElementById("failedCounts").textContent);
+  const successLabels = JSON.parse(document.getElementById("successLabels").textContent);
+  const successCounts = JSON.parse(document.getElementById("successCounts").textContent);
+  const pieCtx = document.getElementById('loginPieChart').getContext('2d');
+  const statusByDept = JSON.parse(document.getElementById("statusByDept").textContent);
+
+  const loginChart = new Chart(document.getElementById('loginTrendChart'), {
+      type: 'line',
+  data: {
+    labels: trendLabels,
+    datasets: [
+      {
+        label: 'Total',
+        data: trendCounts,
+        borderColor: '#007bff',
+        backgroundColor: 'rgba(0,123,255,0.1)',
+        tension: 0.3,
+        fill: false,
+        hidden: false
+      },
+      {
+        label: 'Success',
+        data: successCounts,
+        borderColor: '#28a745',
+        backgroundColor: 'rgba(40,167,69,0.1)',
+        tension: 0.3,
+        fill: false,
+        hidden: false
+      },
+      {
+        label: 'Failed',
+        data: failedCounts,
+        borderColor: '#dc3545',
+        backgroundColor: 'rgba(220,53,69,0.1)',
+        tension: 0.3,
+        fill: false,
+        hidden: false
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      title: {
+        display: true,
+        text: 'Login Attempts Over Time'
+      }
+    }
+  }
+});
+
+ let currentDateFilter = null;
+
+function applyFilters() {
+  const statusFilter = document.getElementById("statusFilter").value;
+  const deptFilter = document.getElementById("deptFilterTable").value;
+  const rows = document.querySelectorAll("#loginTableBody tr");
+
+  rows.forEach(row => {
+    const loginTime = row.cells[4].textContent;  // login time is at column 4
+    const loginDate = loginTime.split(' ')[0];
+
+    const status = row.cells[5].textContent.trim(); // status column
+    const department = row.cells[3].textContent.trim(); // department column
+
+    const matchDate = !currentDateFilter || loginDate === currentDateFilter;
+    const matchStatus = (statusFilter === "All") || (status === statusFilter);
+    const matchDept = (deptFilter === "All") || (department === deptFilter);
+
+    if (matchDate && matchStatus && matchDept) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+
+document.getElementById('loginTrendChart').onclick = function(evt) {
+  const points = loginChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+  if (points.length) {
+    const index = points[0].index;
+    const clickedLabel = loginChart.data.labels[index];
+    const clickedDate = new Date(clickedLabel).toISOString().split('T')[0];
+    currentDateFilter = clickedDate;
+    document.getElementById("filterLabel").textContent = `📅 Showing records for: ${clickedDate}`;
+    applyFilters();
+  }
+};
+
+document.getElementById("deptFilter").addEventListener("change", applyPieFilters);
+document.getElementById("statusFilterPie").addEventListener("change", applyPieFilters);
+
+function applyPieFilters() {
+  const selectedDept = document.getElementById("deptFilter").value;
+  const selectedStatus = document.getElementById("statusFilterPie").value;
+
+  // Pie chart update
+  let newData;
+  if (selectedDept === "All") {
+    newData = computeTotals();
+    pieChart.options.plugins.title.text = "Login Status: All Departments";
+  } else {
+    const deptData = statusByDept[selectedDept] || { "Success": 0, "Failed": 0 };
+    newData = [
+      deptData["Success"] || 0,
+      deptData["Failed"] || 0
+    ];
+    pieChart.options.plugins.title.text = `Login Status: ${selectedDept}`;
+  }
+
+  pieChart.data.datasets[0].data = newData;
+  pieChart.update();
+
+  // Table filtering
+  const allDeptRows = document.querySelectorAll("#deptLoginTableBody tr");
+  allDeptRows.forEach(row => {
+    const rowDept = row.getAttribute("data-department") || "—";
+    const rowStatus = row.cells[5].textContent.trim(); // Status is at column index 5
+    const matchDept = selectedDept === "All" || rowDept === selectedDept;
+    const matchStatus = selectedStatus === "All" || rowStatus === selectedStatus;
+
+    if (matchDept && matchStatus) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+
+function resetLoginTable() {
+  currentDateFilter = null;
+  document.getElementById("statusFilter").value = "All";
+  document.getElementById("filterLabel").textContent = "";
+
+  const rows = document.querySelectorAll("#loginTableBody tr");
+  rows.forEach(row => row.style.display = "");
+}
+
+function computeTotals() {
+  let totalSuccess = 0, totalFailed = 0;
+  for (const dept in statusByDept) {
+    totalSuccess += statusByDept[dept]["Success"] || 0;
+    totalFailed += statusByDept[dept]["Failed"] || 0;
+  }
+  return [totalSuccess, totalFailed];
+}
+
+let pieChart = new Chart(pieCtx, {
+  type: 'pie',
+  data: {
+    labels: ['Success', 'Failed'],
+    datasets: [{
+      data: computeTotals(),
+      backgroundColor: ['#4caf50', '#ff9800' ]
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom' },
+      title: {
+        display: true,
+        text: 'Login Status: All Departments'
+      }
+    }
+  }
+});
+      // Initialize Leaflet map
+  const map = L.map('loginMap').setView([3.139, 101.6869], 5);  // Default: Malaysia
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const bounds = [];
+  const mapMarkers = [];
+
+  const successIcon = new L.Icon({
+    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -30]
+  });
+
+  const failedIcon = new L.Icon({
+    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -30]
+  });
+
+  const defaultIcon = new L.Icon.Default();
+
+  function updateMapMarkers() {
+    const dept = document.getElementById('mapDeptFilter').value;
+    const status = document.getElementById('mapStatusFilter').value;
+    const date = document.getElementById('mapDateFilter').value;
+
+    // Remove old markers
+    mapMarkers.forEach(marker => map.removeLayer(marker));
+    mapMarkers.length = 0;
+    bounds.length = 0;
+
+    locations.forEach(loc => {
+      const matchDept = dept === "All" || loc.department === dept;
+      const matchStatus = status === "All" || loc.status === status;
+      const matchDate = !date || loc.time.startsWith(date);
+
+      if (matchDept && matchStatus && matchDate) {
+        const popup = `<strong>${loc.username}</strong><br>${loc.city}, ${loc.country}<br><i>${loc.status}</i><br><small>${loc.time}</small>`;
+        let icon = defaultIcon;
+        if (loc.status === "Success") icon = successIcon;
+        else if (loc.status === "Failed") icon = failedIcon;
+
+        const marker = L.marker([loc.lat, loc.lon], { icon }).addTo(map).bindPopup(popup);
+        mapMarkers.push(marker);
+        bounds.push([loc.lat, loc.lon]);
+      }
+    });
+
+    if (bounds.length > 0) {
+      const group = new L.featureGroup(mapMarkers);
+      map.fitBounds(group.getBounds(), { padding: [30, 30] });
+    }
+    updateMapTable();
+  }
+
+  function updateMapTable() {
+  const dept = document.getElementById('mapDeptFilter').value;
+  const status = document.getElementById('mapStatusFilter').value;
+  const date = document.getElementById('mapDateFilter').value;
+
+  const rows = document.querySelectorAll("#mapTableBody tr");
+
+  rows.forEach(row => {
+    const rowDept = row.getAttribute('data-department');
+    const rowStatus = row.getAttribute('data-status');
+    const rowDate = row.getAttribute('data-date');
+
+    const matchDept = dept === "All" || rowDept === dept;
+    const matchStatus = status === "All" || rowStatus === status;
+    const matchDate = !date || rowDate === date;
+
+    if (matchDept && matchStatus && matchDate) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+
+
+  // Re-render when filters change
+  ['mapDeptFilter', 'mapStatusFilter', 'mapDateFilter'].forEach(id => {
+    document.getElementById(id).addEventListener('change', updateMapMarkers);
+  });
+
+  // On tab show → resize map and update markers
+  document.querySelector('button[data-bs-target="#map"]').addEventListener('shown.bs.tab', () => {
+    setTimeout(() => {
+      map.invalidateSize();
+      updateMapMarkers();
+    }, 200);
+  });
+
+  // First load
+  document.addEventListener('DOMContentLoaded', updateMapMarkers);
+</script>
+
+<script>
+function exportLoginPDF() {
+  const pdfSection = document.getElementById("pdf-trend-content");
+  pdfSection.style.display = "block";
+
+  // Set filter label
+  document.getElementById("pdfFilterLabel").textContent =
+    document.getElementById("filterLabel").textContent || "📅 Showing all login dates";
+
+  // Copy visible rows
+  const rows = document.querySelectorAll("#loginTableBody tr");
+  const pdfBody = document.getElementById("pdfLoginTableBody");
+  pdfBody.innerHTML = "";
+  rows.forEach(row => {
+    if (row.style.display !== "none") {
+      const newRow = row.cloneNode(true);
+      pdfBody.appendChild(newRow);
+    }
+  });
+
+  // Copy chart as image
+  const mainCanvas = document.getElementById("loginTrendChart");
+  const imgDataUrl = mainCanvas.toDataURL("image/png");
+  const wrapper = document.getElementById("pdfTrendChartWrapper");
+  wrapper.innerHTML = "";
+  const img = new Image();
+  img.src = imgDataUrl;
+  img.style.maxWidth = "100%";
+  wrapper.appendChild(img);
+
+  // Export and hide after
+  html2pdf()
+    .set({ margin: [0.2, 0.2], filename: 'Login_Trend_Report.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } })
+    .from(pdfSection)
+    .save()
+    .then(() => {
+      pdfSection.style.display = "none";
+    });
+}
+
+function exportPiePDF() {
+  const pdfSection = document.getElementById("pdf-pie-content");
+  pdfSection.style.display = "block";
+
+  // Set filter label
+  const dept = document.getElementById("deptFilter").value;
+  const status = document.getElementById("statusFilterPie").value;
+  document.getElementById("pdfPieFilterLabel").textContent =
+    `📊 Filters → Department: ${dept}, Status: ${status}`;
+
+  // Copy visible rows
+  const rows = document.querySelectorAll("#deptLoginTableBody tr");
+  const pdfBody = document.getElementById("pdfPieTableBody");
+  pdfBody.innerHTML = "";
+  rows.forEach(row => {
+    if (row.style.display !== "none") {
+      pdfBody.appendChild(row.cloneNode(true));
+    }
+  });
+
+  // Copy pie chart as image
+  const chartCanvas = document.getElementById("loginPieChart");
+  const imgDataUrl = chartCanvas.toDataURL("image/png");
+  const wrapper = document.getElementById("pdfPieChartWrapper");
+  wrapper.innerHTML = "";
+  const img = new Image();
+  img.src = imgDataUrl;
+  img.style.maxWidth = "100%";
+  wrapper.appendChild(img);
+
+  // Export and hide
+  html2pdf()
+    .set({
+      margin: [0.2, 0.2],
+      filename: 'Login_Status_By_Department_Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    })
+    .from(pdfSection)
+    .save()
+    .then(() => {
+      pdfSection.style.display = "none";
+    });
+}
+</script>
+
+<script>
+function exportLoginExcel() {
+  const table = document.querySelector("#loginTableBody").parentElement.cloneNode(true);
+
+  // Remove hidden rows
+  table.querySelectorAll("tr").forEach(row => {
+    if (row.style.display === "none") row.remove();
+  });
+
+  const wb = XLSX.utils.table_to_book(table, { sheet: "Login Report" });
+  XLSX.writeFile(wb, "Login_Report.xlsx");
+}
+
+function exportPieExcel() {
+  const table = document.querySelector("#deptLoginTableBody").parentElement.cloneNode(true);
+
+  // Remove hidden rows
+  table.querySelectorAll("tr").forEach(row => {
+    if (row.style.display === "none") row.remove();
+  });
+
+  const wb = XLSX.utils.table_to_book(table, { sheet: "Login Status" });
+  XLSX.writeFile(wb, "Login_Status_By_Department_Report.xlsx");
+}
+</script>
+
+  
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('show');
+      document.body.classList.toggle('sidebar-open');
+    }
+
+   function toggleSidebarDesktop() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+    }
+
+    // Auto-hide toggle on scroll down
+     let lastScrollTop = 0;
+    window.addEventListener('scroll', function () {
+      const mobileToggle = document.getElementById('mobileToggle');
+      const desktopToggle = document.querySelector('.toggle-btn');
+      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+
+      if (currentScroll < lastScrollTop) {
+         // Scrolling up → show buttons
+      mobileToggle.style.opacity = "1";
+      mobileToggle.style.pointerEvents = "auto";
+      if (desktopToggle) {
+        desktopToggle.style.opacity = "1";
+        desktopToggle.style.pointerEvents = "auto";
+      }
+    } else {
+      // Scrolling down → hide buttons
+      mobileToggle.style.opacity = "0";
+      mobileToggle.style.pointerEvents = "none";
+      if (desktopToggle) {
+        desktopToggle.style.opacity = "0";
+        desktopToggle.style.pointerEvents = "none";
+      }
+    }
+
+      lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+    });
+  </script>
+</body>
+</html>

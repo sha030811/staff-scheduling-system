@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Staff Scheduling System - Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
+
+  <style>
+   body {
+  margin: 0;
+  padding: 0;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  background-image: url('{{ url_for("static", filename="background.png") }}');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+    .login-container {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+
+    .logo img {
+      height: 150px;
+      align-items: center;
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 30px;
+      font-weight: bold;
+      margin-bottom: 25px;
+    }
+
+    form label {
+      font-weight: 500;
+      display: block;
+      margin-top: 15px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px 14px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    input[type="submit"] {
+      width: 100%;
+      padding: 12px;
+      background-color: #4da6ff;
+      color: white;
+      font-weight: bold;
+      font-size: 20px;
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      border: none;
+      border-radius: 6px;
+      margin-top: 25px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #3385ff;
+    }
+
+     .flash-box {
+    margin: auto;
+    max-width: 400px;
+    padding: 10px;
+    color: white;
+    border-radius: 8px;
+  }
+
+  .flash-danger {
+    background-color: #dc3545;
+  }
+
+  .flash-warning {
+    background-color: #ffc107;
+    color: black;
+  }
+
+  .flash-default {
+    background-color: #6c757d;
+  }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 30px 20px;
+      }
+
+      .login-title {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+   {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div style="position: absolute; top: 20px; text-align: center; width: 100%;">
+      {% for category, message in messages %}
+        <div class="flash-box
+                    {% if category == 'danger' %}flash-danger
+                    {% elif category == 'warning' %}flash-warning
+                    {% else %}flash-default{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+
+  <div class="login-container">
+  <div class="logo">
+    <img src="{{ url_for('static', filename='hospital_logo.png') }}" alt="Logo">
+  </div>
+
+  <div class="login-title">Hospital Scheduling System</div>
+
+  <!-- ✅ FORM TAG STARTS HERE -->
+  <form method="POST" action="/login">
+
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" value="{{ request.form.username or '' }}">
+    {% if errors.username %}
+      <div style="color: red; font-size: 15px;">{{ errors.username }}</div>
+    {% endif %}
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password">
+    {% if errors.password %}
+      <div style="color: red; font-size: 15px;">{{ errors.password }}</div>
+    {% endif %}
+
+    <input type="submit" value="Login">
+
+    {% if errors.general %}
+      <div style="color: red; font-size: 16px; font-weight: 300; margin-top: 10px;">{{ errors.general }}</div>
+    {% endif %}
+
+  </form>
+  <!-- ✅ FORM TAG ENDS HERE -->
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Request Analysis Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      background-color: #f8f9fa;
+      margin: 0;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 220px;
+      background-color: #004487;
+      color: white;
+      padding-top: 80px;
+      transform: translateX(-100%);
+      transition: transform 0.15s ease;
+      overflow: hidden;
+      z-index: 1000;
+    }
+
+    .sidebar.show {
+      transform: translateX(0);
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: white;
+      text-decoration: none;
+      padding: 20px 20px;
+      font-weight: bold;
+    }
+
+    .sidebar a:hover {
+      background-color: #495057;
+    }
+
+    .sidebar i {
+      font-size: 22px;
+    }
+
+    .sidebar-title {
+      font-size: 24px;
+      padding: 20px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar .label {
+      display: inline;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .sidebar.collapsed .label {
+      opacity: 0;
+      visibility: hidden;
+      width: 0;
+      display: inline-block;
+    }
+
+    .mobile-toggle, .toggle-btn {
+      position: fixed;
+      top: 15px;
+      background-color: #004487;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 20px;
+      z-index: 1101;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .mobile-toggle {
+      left: 15px;
+      display: none;
+    }
+
+    .toggle-btn {
+      left: 230px;
+      display: none;
+    }
+
+    .main {
+      margin-left: 0;
+      padding: 100px 30px 30px 30px;
+      transition: margin-left 0.3s ease;
+    }
+
+    .main {
+      padding: 40px;
+      transition: transform 0.15s ease;
+    }
+
+    body.sidebar-open .main {
+      transform: translateX(220px);
+    }
+
+    .request_analysis-title {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 2rem;
+      color: #343a40;
+      padding-top: 60px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #dee2e6;
+      padding-bottom: 20px;
+    }
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+@media (max-width: 768px) {
+  .mobile-toggle {
+        display: block;
+      }
+      
+  .main {
+    padding-top: 40px !important; /* ✅ Push content down on mobile */
+  }
+  .accordion-button {
+  font-size: 14px;
+  padding: 12px 16px;
+  }
+
+  .accordion-body {
+    padding: 10px;
+  }
+  .btn-sm {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+  }
+
+@media (min-width: 769px) {
+      .toggle-btn {
+        display: block;
+        left: 230px;
+      }
+
+      .sidebar {
+        transform: translateX(0);
+        width: 220px;
+      }
+
+      .sidebar.collapsed {
+        width: 70px;
+      }
+
+      .sidebar.collapsed ~ .toggle-btn {
+        left: 85px;
+      }
+
+      .main {
+        margin-left: 220px;
+        transition: margin-left 0.3s ease;
+      }
+
+      .sidebar.collapsed + .toggle-btn {
+          left: 85px;
+        }
+
+      .sidebar.collapsed ~ .main {
+        margin-left: 70px !important;
+      }
+    }
+
+      .chart-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+  </style>
+</head>
+
+<body>
+  <!-- Mobile Toggle -->
+  <button id="mobileToggle" class="mobile-toggle" onclick="toggleSidebar()">
+    <i class="bi bi-list"></i>
+  </button>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar">
+    <div class="sidebar-title">
+      <i class="bi bi-bar-chart"></i><span class="label">Reports</span>
+    </div>
+    <a href="/attendance_report"><i class="bi bi-calendar-check"></i> <span class="label">Attendance</span></a>
+    <a href="/shift_coverage"><i class="bi bi-clock-history"></i> <span class="label">Shift Coverage</span></a>
+    <a href="/request_analysis"><i class="bi bi-bar-chart-line"></i> <span class="label">Request Analysis</span></a>
+    <a href="/staff_overview"><i class="bi bi-people"></i> <span class="label">Staff Overview</span></a>
+    <a href="/login_activity"><i class="bi bi-box-arrow-in-right"></i> <span class="label">Login Activity</span></a>
+    <a href="/reports_dashboard"><i class="bi bi-arrow-left-circle"></i> <span class="label">Back to Dashboard</span></a>
+  </div>
+
+  <button class="toggle-btn d-none d-md-block" onclick="toggleSidebarDesktop()">☰</button>
+
+  <div id="main" class="main">
+    <div class="page-header mb-4">
+      <h2 class="request_analysis-title">📊 Request Analysis Report</h2>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" class="row g-3 mb-4 justify-content-end">
+      <div class="col-md-3">
+        <select name="department_id" class="form-select">
+          <option value="">All Departments</option>
+          {% for dept in departments %}
+            <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="status" class="form-select">
+          <option value="">All Status</option>
+          <option value="Approved" {% if selected_status == 'Approved' %}selected{% endif %}>Approved</option>
+          <option value="Rejected" {% if selected_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+          <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100">Filter</button>
+      </div>
+    </form>
+
+     <ul class="nav nav-tabs mb-4" id="chartTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="monthly-tab" data-bs-toggle="tab" data-bs-target="#monthly" type="button" role="tab">📅 Monthly Trends</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="type-tab" data-bs-toggle="tab" data-bs-target="#type" type="button" role="tab">📌 By Type</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button" role="tab">📊 Status</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff" type="button" role="tab">🏆 Staff</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="dept-tab" data-bs-toggle="tab" data-bs-target="#dept" type="button" role="tab">🏢 Departments</button>
+      </li>
+    </ul>
+
+        <div class="tab-content" id="chartTabsContent">
+        <div class="tab-pane fade show active" id="monthly" role="tabpanel">
+          <div class="d-flex justify-content-end mb-3 gap-2">
+            <button class="btn btn-outline-danger btn-sm" onclick="exportMonthlyToPDF()">
+              <i class="bi bi-file-earmark-pdf-fill"></i> Export PDF
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="exportMonthlyToExcel()">
+              <i class="bi bi-file-earmark-excel-fill"></i> Export Excel
+            </button>
+          </div>
+        <div class="chart-wrapper">
+          <canvas id="submissionTrendChart" height="60"></canvas>
+        </div>
+
+<div class="accordion mt-4" id="monthlyAccordion">
+  {% for month, group in monthly_grouped_records.items() %}
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="heading-{{ loop.index }}">
+      <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapse-{{ loop.index }}"
+              aria-expanded="false"
+              aria-controls="collapse-{{ loop.index }}">
+        📅 {{ month }}
+      </button>
+    </h2>
+    <div id="collapse-{{ loop.index }}"
+         class="accordion-collapse collapse"
+         aria-labelledby="heading-{{ loop.index }}"
+         data-bs-parent="#monthlyAccordion">
+      <div class="accordion-body">
+        <div class="table-responsive">
+          <table class="table table-bordered text-center align-middle">
+            <thead class="table-secondary">
+              <tr>
+                <th>Staff Name</th>
+                <th>Department</th>
+                <th>Request Date</th>
+                <th>Type</th>
+                <th>Current</th>  
+                <th>Requested Shift</th>
+                <th>Reason</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in group %}
+              <tr>
+                <td>{{ r.full_name }}</td>
+                <td>{{ r.department }}</td>
+                <td>{{ r.requested_date }}</td>
+                <td>{{ r.request_type }}</td>
+                <td>{{ r.current_shift}}</td>  
+                <td>{{ r.desired_shift}}</td>
+                <td>{{ r.reason }}</td>
+                <td>{{ r.status }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+   </div>
+  </div> <!-- ✅ close #monthly tab-pane -->
+
+      <div class="tab-pane fade" id="type" role="tabpanel">
+        <div class="d-flex justify-content-end mb-3 gap-2">
+  <button class="btn btn-outline-danger btn-sm" onclick="exportTypeToPDF()">
+    <i class="bi bi-file-earmark-pdf-fill"></i> Export PDF
+  </button>
+  <button class="btn btn-outline-success btn-sm" onclick="exportTypeToExcel()">
+    <i class="bi bi-file-earmark-excel-fill"></i> Export Excel
+  </button>
+</div>
+
+        <div class="chart-wrapper">
+                <canvas id="typeChart" height="60"></canvas>
+              </div>
+          
+
+  <div class="accordion mt-4" id="typeAccordion">
+    {% for type, group in type_grouped_records.items() %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="typeHeading-{{ loop.index }}">
+        <button class="accordion-button collapsed" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#typeCollapse-{{ loop.index }}"
+                aria-expanded="false"
+                aria-controls="typeCollapse-{{ loop.index }}">
+          📌 {{ type }}
+        </button>
+      </h2>
+      <div id="typeCollapse-{{ loop.index }}"
+           class="accordion-collapse collapse"
+           aria-labelledby="typeHeading-{{ loop.index }}"
+           data-bs-parent="#typeAccordion">
+        <div class="accordion-body">
+          <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+              <thead class="table-secondary">
+                <tr>
+                  <th>Staff Name</th>
+                  <th>Department</th>
+                  <th>Request Date</th>
+                  <th>Current</th>  
+                  <th>Requested Shift</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in group %}
+                <tr>
+                  <td>{{ r.full_name }}</td>
+                  <td>{{ r.department }}</td>
+                  <td>{{ r.requested_date }}</td>
+                  <td>{{ r.current_shift }} </td>
+                   <td>{{ r.desired_shift }}</td>
+                  <td>{{ r.reason }}</td>
+                  <td>{{ r.status }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+      <div class="tab-pane fade" id="status" role="tabpanel">
+        <div class="d-flex justify-content-end mb-3 gap-2">
+  <button class="btn btn-outline-danger btn-sm" onclick="exportStatusToPDF()">
+    <i class="bi bi-file-earmark-pdf-fill"></i> Export PDF
+  </button>
+  <button class="btn btn-outline-success btn-sm" onclick="exportStatusToExcel()">
+    <i class="bi bi-file-earmark-excel-fill"></i> Export Excel
+  </button>
+</div>
+        <div class="chart-wrapper" style="max-width: 500px; margin: 0 auto; text-align: center;">
+  <canvas id="statusChart" style="max-width: 100%; max-height: 400px;"></canvas>
+</div>
+
+  <div class="accordion mt-4" id="statusAccordion">
+    {% for status, group in status_grouped_records.items() %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="statusHeading-{{ loop.index }}">
+        <button class="accordion-button collapsed" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#statusCollapse-{{ loop.index }}"
+                aria-expanded="false"
+                aria-controls="statusCollapse-{{ loop.index }}">
+          📊 {{ status }}
+        </button>
+      </h2>
+      <div id="statusCollapse-{{ loop.index }}"
+           class="accordion-collapse collapse"
+           aria-labelledby="statusHeading-{{ loop.index }}"
+           data-bs-parent="#statusAccordion">
+        <div class="accordion-body">
+          <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+              <thead class="table-secondary">
+                <tr>
+                  <th>Staff Name</th>
+                  <th>Department</th>
+                  <th>Request Date</th>
+                  <th>Type</th>
+                  <th>Current_shift</th>  
+                  <th>Requested Shift</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in group %}
+                <tr>
+                  <td>{{ r.full_name }}</td>
+                  <td>{{ r.department }}</td>
+                  <td>{{ r.requested_date }}</td>
+                  <td>{{ r.request_type }}</td>
+                  <td>{{ r.current_shift}}</td>  
+                  <td>{{ r.desired_shift}}</td>
+                  <td>{{ r.reason }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+    <div class="tab-pane fade" id="staff" role="tabpanel">
+     <div class="d-flex justify-content-end mb-3 gap-2">
+  <button class="btn btn-outline-danger btn-sm" onclick="exportStaffToPDF()">
+    <i class="bi bi-file-earmark-pdf-fill"></i> Export PDF
+  </button>
+  <button class="btn btn-outline-success btn-sm" onclick="exportStaffToExcel()">
+    <i class="bi bi-file-earmark-excel-fill"></i> Export Excel
+  </button>
+</div>
+   <div class="chart-wrapper">
+          <canvas id="topStaffChart" height="60"></canvas>
+        </div>
+
+  <div class="accordion mt-4" id="staffAccordion">
+    {% for staff, group in top_staff_grouped_records.items() %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="staffHeading-{{ loop.index }}">
+        <button class="accordion-button collapsed" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#staffCollapse-{{ loop.index }}"
+                aria-expanded="false"
+                aria-controls="staffCollapse-{{ loop.index }}">
+          🧑 {{ staff }}
+        </button>
+      </h2>
+      <div id="staffCollapse-{{ loop.index }}"
+           class="accordion-collapse collapse"
+           aria-labelledby="staffHeading-{{ loop.index }}"
+           data-bs-parent="#staffAccordion">
+        <div class="accordion-body">
+          <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+              <thead class="table-secondary">
+                <tr>
+                  <th>Department</th>
+                  <th>Request Date</th>
+                  <th>Type</th>
+                  <th>Current Shift</th>  
+                  <th>Requested Shift</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in group %}
+                <tr>
+                  <td>{{ r.department }}</td>
+                  <td>{{ r.requested_date }}</td>
+                  <td>{{ r.request_type }}</td>
+                  <td>{{ r.current_shift}}</td>  
+                  <td>{{ r.desired_shift}}</td>
+                  <td>{{ r.reason }}</td>
+                  <td>{{ r.status }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+    <div class="tab-pane fade" id="dept" role="tabpanel">
+      <div class="d-flex justify-content-end mb-3 gap-2">
+  <button class="btn btn-outline-danger btn-sm" onclick="exportDeptToPDF()">
+    <i class="bi bi-file-earmark-pdf-fill"></i> Export PDF
+  </button>
+  <button class="btn btn-outline-success btn-sm" onclick="exportDeptToExcel()">
+    <i class="bi bi-file-earmark-excel-fill"></i> Export Excel
+  </button>
+</div>
+
+   <div class="chart-wrapper">
+          <canvas id="topDeptChart" height="60"></canvas>
+        </div>
+
+  <div class="accordion mt-4" id="deptAccordion">
+    {% for dept, group in top_dept_grouped_records.items() %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading-dept-{{ loop.index }}">
+        <button class="accordion-button collapsed" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-dept-{{ loop.index }}"
+                aria-expanded="false"
+                aria-controls="collapse-dept-{{ loop.index }}">
+          🏢 {{ dept }}
+        </button>
+      </h2>
+      <div id="collapse-dept-{{ loop.index }}" class="accordion-collapse collapse"
+           aria-labelledby="heading-dept-{{ loop.index }}"
+           data-bs-parent="#deptAccordion">
+        <div class="accordion-body">
+          <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+              <thead class="table-secondary">
+                <tr>
+                  <th>Staff Name</th>
+                  <th>Request Date</th>
+                  <th>Type</th>
+                  <th>Current → Requested Shift</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in group %}
+                <tr>
+                  <td>{{ r.full_name }}</td>
+                  <td>{{ r.requested_date }}</td>
+                  <td>{{ r.request_type }}</td>
+                  <td>{{ r.current_shift }} → {{ r.desired_shift }}</td>
+                  <td>{{ r.reason }}</td>
+                  <td>{{ r.status }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+  <!-- 🔻 Hidden Export Container -->
+<div id="pdf-monthly-content" style="display: none;">
+  <h2 style="text-align:center; margin-bottom:20px;">📅 Monthly Requests Summary</h2>
+  
+  <div style="max-width: 500px; margin: 0 auto;">
+    <canvas id="pdfMonthlyChart" width="500" height="300"></canvas>
+  </div>
+
+  {% for month, group in monthly_grouped_records.items() %}
+    <h4 style="margin-top: 30px;">📅 {{ month }}</h4>
+    <table class="table table-bordered text-center align-middle" style="font-size: 10px; width: 100%;">
+      <thead class="table-secondary">
+        <tr>
+          <th>Staff Name</th>
+          <th>Department</th>
+          <th>Request Date</th>
+          <th>Type</th>
+          <th>Current</th>
+          <th>Requested Shift</th>
+          <th>Reason</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in group %}
+        <tr>
+          <td>{{ r.full_name }}</td>
+          <td>{{ r.department }}</td>
+          <td>{{ r.requested_date }}</td>
+          <td>{{ r.request_type }}</td>
+          <td>{{ r.current_shift }}</td>
+          <td>{{ r.desired_shift }}</td>
+          <td>{{ r.reason }}</td>
+          <td>{{ r.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+</div>
+
+<div id="pdf-staff-content" style="display: none;">
+  <h3>🏆 Top Requesting Staff</h3>
+  <canvas id="pdfStaffChart" width="500" height="300"></canvas>
+
+  {% for staff, group in top_staff_grouped_records.items() %}
+    <h5 class="mt-4">🧑 {{ staff }}</h5>
+    <table class="table table-bordered text-center align-middle">
+      <thead class="table-secondary">
+        <tr>
+          <th>Department</th>
+          <th>Request Date</th>
+          <th>Type</th>
+          <th>Current Shift</th>
+          <th>Requested Shift</th>
+          <th>Reason</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in group %}
+        <tr>
+          <td>{{ r.department }}</td>
+          <td>{{ r.requested_date }}</td>
+          <td>{{ r.request_type }}</td>
+          <td>{{ r.current_shift }}</td>
+          <td>{{ r.desired_shift }}</td>
+          <td>{{ r.reason }}</td>
+          <td>{{ r.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+</div>
+
+<!-- Hidden export content for Type -->
+<div id="pdf-type-content" style="display: none;">
+  <h3>📌 Request Types Summary</h3>
+  <div>
+    <canvas id="pdfTypeChart" width="500" height="300"></canvas>
+  </div>
+  {% for type, group in type_grouped_records.items() %}
+    <h5 style="margin-top: 20px;">📌 {{ type }}</h5>
+    <table class="table table-bordered text-center align-middle mt-2">
+      <thead class="table-secondary">
+        <tr>
+          <th>Staff Name</th>
+          <th>Department</th>
+          <th>Request Date</th>
+          <th>Current</th>
+          <th>Requested Shift</th>
+          <th>Reason</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in group %}
+        <tr>
+          <td>{{ r.full_name }}</td>
+          <td>{{ r.department }}</td>
+          <td>{{ r.requested_date }}</td>
+          <td>{{ r.current_shift }}</td>
+          <td>{{ r.desired_shift }}</td>
+          <td>{{ r.reason }}</td>
+          <td>{{ r.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+</div>
+
+<!-- ✅ Hidden PDF Export Section for Status -->
+<div id="pdf-status-content" style="display: none;">
+  <h3>📊 Request Status Summary</h3>
+  <div>
+    <canvas id="pdfStatusChart" width="500" height="300"></canvas>
+  </div>
+  {% for status, group in status_grouped_records.items() %}
+    <h5 style="margin-top: 20px;">📊 {{ status }}</h5>
+    <table class="table table-bordered text-center align-middle mt-2">
+      <thead class="table-secondary">
+        <tr>
+          <th>Staff Name</th>
+          <th>Department</th>
+          <th>Request Date</th>
+          <th>Type</th>
+          <th>Current</th>
+          <th>Requested Shift</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in group %}
+        <tr>
+          <td>{{ r.full_name }}</td>
+          <td>{{ r.department }}</td>
+          <td>{{ r.requested_date }}</td>
+          <td>{{ r.request_type }}</td>
+          <td>{{ r.current_shift }}</td>
+          <td>{{ r.desired_shift }}</td>
+          <td>{{ r.reason }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+</div>
+
+<div id="pdf-dept-content" style="display: none;">
+  <h3>🏢 Department-wise Request Summary</h3>
+  <canvas id="pdfDeptChart" width="500" height="300"></canvas>
+
+  {% for dept, group in top_dept_grouped_records.items() %}
+    <h5 class="mt-4">🏢 {{ dept }}</h5>
+    <table class="table table-bordered text-center align-middle">
+      <thead class="table-secondary">
+        <tr>
+          <th>Staff Name</th>
+          <th>Request Date</th>
+          <th>Type</th>
+          <th>Current → Requested Shift</th>
+          <th>Reason</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in group %}
+        <tr>
+          <td>{{ r.full_name }}</td>
+          <td>{{ r.requested_date }}</td>
+          <td>{{ r.request_type }}</td>
+          <td>{{ r.current_shift }} → {{ r.desired_shift }}</td>
+          <td>{{ r.reason }}</td>
+          <td>{{ r.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+</div>
+
+
+<script>
+  // Render monthly chart for PDF
+  const pdfCtx = document.getElementById('pdfMonthlyChart').getContext('2d');
+  new Chart(pdfCtx, {
+    type: 'bar',
+    data: {
+      labels: JSON.parse(`{{ month_labels | tojson | safe }}`),
+      datasets: [{
+        label: 'Requests',
+        data: JSON.parse(`{{ month_data | tojson | safe }}`),
+        backgroundColor: '#007bff'
+      }]
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  function exportMonthlyToPDF() {
+    const element = document.getElementById('pdf-monthly-content');
+    element.style.display = 'block';
+
+    const opt = {
+      margin: [0.2, 0.2],
+      filename: 'Monthly_Requests_Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.display = 'none';
+    });
+  }
+</script>
+
+<script>
+  const pdfTypeCtx = document.getElementById('pdfTypeChart').getContext('2d');
+  new Chart(pdfTypeCtx, {
+    type: 'bar',
+    data: {
+      labels: JSON.parse(`{{ type_labels | tojson | safe }}`),
+      datasets: [{
+        label: 'Requests',
+        data: JSON.parse(`{{ type_data | tojson | safe }}`),
+        backgroundColor: '#ffc107'
+      }]
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+    function exportTypeToPDF() {
+    const element = document.getElementById('pdf-type-content');
+    element.style.display = 'block';
+
+    const opt = {
+      margin: [0.5, 0.5],
+      filename: 'Type_Requests_Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.display = 'none';
+    });
+  }
+</script>
+
+<!-- ✅ Chart.js Clone for Status PDF -->
+<script>
+  const pdfStatusCtx = document.getElementById('pdfStatusChart').getContext('2d');
+  new Chart(pdfStatusCtx, {
+    type: 'pie',
+    data: {
+      labels: JSON.parse(`{{ status_labels | tojson | safe }}`),
+      datasets: [{
+        label: 'Status Count',
+        data: JSON.parse(`{{ status_data | tojson | safe }}`),
+        backgroundColor: ['#28a745', '#dc3545', '#ffc107']
+      }]
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+
+  function exportStatusToPDF() {
+    const element = document.getElementById('pdf-status-content');
+    element.style.display = 'block';
+
+    const opt = {
+      margin: [0.5, 0.5],
+      filename: 'Request_Status_Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.display = 'none';
+    });
+  }
+
+</script>
+
+<script>
+  const pdfStaffCtx = document.getElementById('pdfStaffChart').getContext('2d');
+  new Chart(pdfStaffCtx, {
+    type: 'bar',
+    data: {
+      labels: JSON.parse(`{{ top_staff_labels | tojson | safe }}`),
+      datasets: [{
+        label: 'Requests',
+        data: JSON.parse(`{{ top_staff_data | tojson | safe }}`),
+        backgroundColor: '#28a745'
+      }]
+    },
+    options: {
+      responsive: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  function exportStaffToPDF() {
+    const element = document.getElementById('pdf-staff-content');
+    element.style.display = 'block';
+
+    const opt = {
+      margin: 0.5,
+      filename: 'Top_Staff_Requests_Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.display = 'none';
+    });
+  }
+</script>
+<script>
+  const pdfDeptCtx = document.getElementById('pdfDeptChart').getContext('2d');
+  new Chart(pdfDeptCtx, {
+    type: 'bar',
+    data: {
+      labels: JSON.parse(`{{ top_dept_labels | tojson | safe }}`),
+      datasets: [{
+        label: 'Requests',
+        data: JSON.parse(`{{ top_dept_data | tojson | safe }}`),
+        backgroundColor: '#17a2b8'
+      }]
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+   function exportDeptToPDF() {
+    const element = document.getElementById('pdf-dept-content');
+    element.style.display = 'block';
+
+    const opt = {
+      margin: 0.5,
+      filename: 'Top_Departments_Requests_Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.display = 'none';
+    });
+  }
+</script>
+
+<script>
+  // ✅ Declare only once — globally accessible to all chart scripts
+  const brightColors = [
+    '#66ff66', '#ff6666', '#ffeb3b', '#66ccff', '#d1b3ff',
+    '#ffd699', '#a3f7bf', '#ffb3e6', '#c2f0fc', '#ffb347',
+    '#c1c1ff', '#f4cccc', '#d9ead3', '#fce5cd', '#d0e0e3',
+    '#f9cb9c', '#c9daf8', '#ead1dc', '#b6d7a8', '#ffe599'
+  ];
+</script>
+
+    <script>
+      const ctx = document.getElementById('submissionTrendChart').getContext('2d');
+      const submissionTrendChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: JSON.parse(`{{ month_labels | tojson | safe }}`),
+          datasets: [{
+            label: 'Requests',
+            data: JSON.parse(`{{ month_data | tojson | safe }}`),
+            backgroundColor: brightColors
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+    </script>
+
+    <script>
+    const typeCtx = document.getElementById('typeChart').getContext('2d');
+    const typeChart = new Chart(typeCtx, {
+      type: 'bar',
+      data: {
+        labels: JSON.parse(`{{ type_labels | tojson | safe }}`),
+        datasets: [{
+          label: 'Requests',
+          data: JSON.parse(`{{ type_data | tojson | safe }}`),
+          backgroundColor: brightColors
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+  });
+</script>
+
+<script>
+
+  const statusCtx = document.getElementById('statusChart').getContext('2d');
+  const statusChart = new Chart(statusCtx, {
+    type: 'pie',
+    data: {
+      labels: JSON.parse(`{{ status_labels | tojson | safe }}`),
+      datasets: [{
+        label: 'Status Count',
+        data: JSON.parse(`{{ status_data | tojson | safe }}`),
+        backgroundColor: brightColors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+</script>
+
+<script>
+  const topStaffCtx = document.getElementById('topStaffChart').getContext('2d');
+  new Chart(topStaffCtx, {
+    type: 'bar',
+    data: {
+      labels: JSON.parse(`{{ top_staff_labels | tojson | safe }}`),
+      datasets: [{
+        label: 'Requests',
+        data: JSON.parse(`{{ top_staff_data | tojson | safe }}`),
+        backgroundColor: brightColors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  const topDeptCtx = document.getElementById('topDeptChart').getContext('2d');
+  new Chart(topDeptCtx, {
+    type: 'bar',
+    data: {
+      labels: JSON.parse(`{{ top_dept_labels | tojson | safe }}`),
+      datasets: [{
+        label: 'Requests',
+        data: JSON.parse(`{{ top_dept_data | tojson | safe }}`),
+        backgroundColor: brightColors
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+</script>
+
+<script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('show');
+      document.body.classList.toggle('sidebar-open');
+    }
+
+   function toggleSidebarDesktop() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+    }
+
+
+    
+  let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  let scrollUpDistance = 0;
+  const scrollThreshold = 50; // must scroll up this much before showing toggle again
+
+  window.addEventListener('scroll', function () {
+    const mobileToggle = document.getElementById('mobileToggle');
+    const desktopToggle = document.querySelector('.toggle-btn');
+    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+
+    if (currentScroll < lastScrollTop) {
+      // scrolling up
+      scrollUpDistance += lastScrollTop - currentScroll;
+
+      if (scrollUpDistance >= scrollThreshold) {
+        mobileToggle.style.opacity = "1";
+        mobileToggle.style.pointerEvents = "auto";
+        if (desktopToggle) {
+          desktopToggle.style.opacity = "1";
+          desktopToggle.style.pointerEvents = "auto";
+        }
+      }
+    } else {
+      // scrolling down
+      scrollUpDistance = 0;
+      mobileToggle.style.opacity = "0";
+      mobileToggle.style.pointerEvents = "none";
+      if (desktopToggle) {
+        desktopToggle.style.opacity = "0";
+        desktopToggle.style.pointerEvents = "none";
+      }
+    }
+
+    lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+  });
+</script>
+
+<script>
+  function exportMonthlyToExcel() {
+    const tables = document.querySelectorAll("#monthlyAccordion table");
+    const wb = XLSX.utils.book_new();
+
+    tables.forEach((table, index) => {
+      const month = table.closest('.accordion-item')
+                        .querySelector('.accordion-button').textContent.trim();
+      const ws = XLSX.utils.table_to_sheet(table);
+      XLSX.utils.book_append_sheet(wb, ws, month.substring(2, 31));  // remove icon and limit name
+    });
+
+    XLSX.writeFile(wb, "Monthly_Requests_Data.xlsx");
+  }
+</script>
+
+<script>
+  function exportTypeToExcel() {
+    const tables = document.querySelectorAll("#typeAccordion table");
+    const wb = XLSX.utils.book_new();
+
+    tables.forEach((table, index) => {
+      const type = table.closest(".accordion-item").querySelector(".accordion-button").innerText.trim();
+      const ws = XLSX.utils.table_to_sheet(table);
+      XLSX.utils.book_append_sheet(wb, ws, type.slice(0, 31));
+    });
+
+    XLSX.writeFile(wb, "Request_Type_Report.xlsx");
+  }
+</script>
+
+<!-- ✅ Excel Export Function for Status -->
+<script>
+  function exportStatusToExcel() {
+    const tables = document.querySelectorAll("#statusAccordion table");
+    const wb = XLSX.utils.book_new();
+
+    tables.forEach((table, index) => {
+      const status = table.closest(".accordion-item").querySelector(".accordion-button").innerText.trim();
+      const ws = XLSX.utils.table_to_sheet(table);
+      XLSX.utils.book_append_sheet(wb, ws, status.slice(0, 31));
+    });
+
+    XLSX.writeFile(wb, "Request_Status_Report.xlsx");
+  }
+</script>
+
+<script>
+  function exportStaffToExcel() {
+    const tables = document.querySelectorAll("#staffAccordion table");
+    const wb = XLSX.utils.book_new();
+
+    tables.forEach((table, index) => {
+      const ws = XLSX.utils.table_to_sheet(table);
+      const staffName = document.querySelectorAll('#staffAccordion h2 button')[index].textContent.trim().replace('🧑', '').trim();
+      XLSX.utils.book_append_sheet(wb, ws, staffName || `Staff${index + 1}`);
+    });
+
+    XLSX.writeFile(wb, "Top_Staff_Requests_Data.xlsx");
+  }
+</script>
+
+<script>
+  function exportDeptToExcel() {
+    const tables = document.querySelectorAll("#deptAccordion table");
+    const wb = XLSX.utils.book_new();
+
+    tables.forEach((table, index) => {
+      const ws = XLSX.utils.table_to_sheet(table);
+      const deptName = document.querySelectorAll('#deptAccordion h2 button')[index].textContent.trim().replace('🏢', '').trim();
+      XLSX.utils.book_append_sheet(wb, ws, deptName || `Department${index + 1}`);
+    });
+
+    XLSX.writeFile(wb, "Top_Department_Requests_Data.xlsx");
+  }
+</script>
+
+
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Staff Overview Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+ <style>
+    body {
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      background-color: #f8f9fa;
+      margin: 0;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 220px;
+      background-color: #004487;
+      color: white;
+      padding-top: 80px;
+      transform: translateX(-100%);
+      transition: transform 0.15s ease;
+      overflow: hidden;
+      z-index: 1000;
+    }
+
+    .sidebar.show {
+      transform: translateX(0);
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: white;
+      text-decoration: none;
+      padding: 20px 20px;
+      font-weight: bold;
+    }
+
+    .sidebar a:hover {
+      background-color: #495057;
+    }
+
+    .sidebar i {
+      font-size: 22px;
+    }
+
+    .sidebar-title {
+      font-size: 24px;
+      padding: 20px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar .label {
+      display: inline;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .sidebar.collapsed .label {
+      opacity: 0;
+      visibility: hidden;
+      width: 0;
+      display: inline-block;
+    }
+
+    .mobile-toggle, .toggle-btn {
+      position: fixed;
+      top: 15px;
+      background-color: #004487;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 20px;
+      z-index: 1101;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .mobile-toggle {
+      left: 15px;
+      display: none;
+    }
+
+    .toggle-btn {
+      left: 230px;
+      display: none;
+    }
+
+    .main {
+      margin-left: 0;
+      padding: 100px 30px 30px 30px;
+      transition: margin-left 0.3s ease;
+    }
+
+    .main {
+      padding: 40px;
+      transition: transform 0.15s ease;
+    }
+
+    body.sidebar-open .main {
+      transform: translateX(220px);
+    }
+
+  .summary-card {
+      border-radius: 16px;
+      color: white;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .staff_overview-title {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 2rem;
+      color: #343a40;
+      padding-top: 60px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #dee2e6;
+    }
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 768px) {
+    .mobile-toggle {
+            display: block;
+        }
+        
+    .main {
+        padding-top: 40px !important; /* ✅ Push content down on mobile */
+    }
+
+    }
+
+    @media (min-width: 769px) {
+      .toggle-btn {
+        display: block;
+        left: 230px;
+      }
+
+      .sidebar {
+        transform: translateX(0);
+        width: 220px;
+      }
+
+      .sidebar.collapsed {
+        width: 70px;
+      }
+
+      .sidebar.collapsed ~ .toggle-btn {
+        left: 85px;
+      }
+
+      .main {
+        margin-left: 220px;
+        transition: margin-left 0.3s ease;
+      }
+
+      .sidebar.collapsed + .toggle-btn {
+          left: 85px;
+        }
+
+      .sidebar.collapsed ~ .main {
+        margin-left: 70px !important;
+      }
+    }
+
+      .chart-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+  </style>
+</head>
+<body>
+
+<!-- Toggle buttons -->
+<button id="mobileToggle" class="mobile-toggle" onclick="toggleSidebar()">
+  <i class="bi bi-list"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+  <div class="sidebar-title">
+    <i class="bi bi-bar-chart"></i> <span class="label">Reports</span>
+  </div>
+  <a href="/attendance_report"><i class="bi bi-calendar-check"></i> <span class="label">Attendance</span></a>
+  <a href="/shift_coverage"><i class="bi bi-clock-history"></i> <span class="label">Shift Coverage</span></a>
+  <a href="/request_analysis"><i class="bi bi-bar-chart-line"></i> <span class="label">Request Analysis</span></a>
+  <a href="/staff_overview"><i class="bi bi-people"></i> <span class="label">Staff Overview</span></a>
+  <a href="/login_activity"><i class="bi bi-box-arrow-in-right"></i> <span class="label">Login Activity</span></a>
+  <a href="/reports_dashboard"><i class="bi bi-arrow-left-circle"></i> <span class="label">Back to Dashboard</span></a>
+</div>
+
+<button class="toggle-btn d-none d-md-block" onclick="toggleSidebarDesktop()">☰</button>
+<!-- Main Content -->
+<div class="main" id="main">
+  <h2 class="staff_overview-title">📊 Staff Overview Report</h2>
+
+<div class="row mb-4">
+  <div class="col-6 mb-3">
+    <div class="bg-primary summary-card">
+      <h5>Total Users</h5>
+      <h3>{{ total_users }}</h3>
+    </div>
+  </div>
+  <div class="col-6 mb-3">
+    <div class="bg-success summary-card">
+      <h5>Total Departments</h5>
+      <h3>{{ departments|length }}</h3>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-6 mb-3">
+    <div class="bg-warning summary-card">
+      <h5>Total Doctors</h5>
+      <h3>{{ role_counts.get('Doctor', 0) }}</h3>
+    </div>
+  </div>
+  <div class="col-6 mb-3">
+    <div class="bg-dark text-white summary-card">
+      <h5>Total Staff</h5>
+      <h3>{{ role_counts.get('Staff', 0) }}</h3>
+    </div>
+  </div>
+</div>
+
+  <div class="row mb-4">
+  <div class="col-md-6">
+    <label>Department</label>
+    <select id="filter-department" class="form-select">
+      <option value="All">All</option>
+      {% for dept in departments %}
+      <option value="{{ dept }}">{{ dept }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label>Role</label>
+    <select id="filter-role" class="form-select">
+      <option value="All">All</option>
+      {% for role in roles %}
+      <option value="{{ role }}">{{ role }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<div class="d-flex gap-3 my-3 no-print justify-content-end">
+  <button class="btn btn-danger" onclick="exportToPDF()">Export to PDF</button>
+  <button class="btn btn-success" onclick="exportToExcel()">Export to Excel (XLSX)</button>
+</div>
+
+
+<div id="pdf-export-section">
+<!-- 🔹 Chart Tabs -->
+<ul class="nav nav-tabs mt-4" id="chartTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="bar-tab" data-bs-toggle="tab" data-bs-target="#bar-chart" type="button" role="tab">📊 Staff per Department</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="donut-tab" data-bs-toggle="tab" data-bs-target="#donut-chart" type="button" role="tab">🍩 Role Distribution</button>
+  </li>
+</ul>
+
+<div class="tab-content border rounded-bottom bg-white p-3 shadow-sm" id="chartTabsContent">
+  <div class="tab-pane fade show active" id="bar-chart" role="tabpanel">
+    <canvas id="departmentChart" style="max-height: 300px;"></canvas>
+  </div>
+  <div class="tab-pane fade" id="donut-chart" role="tabpanel">
+    <canvas id="roleChart" style="max-height: 300px;"></canvas>
+  </div>
+</div>
+
+
+  <!-- 🔹 Staff Table -->
+<div class="table-responsive mt-4">
+  <table class="table table-bordered bg-white shadow-sm" id="staff-table">
+    <thead class="table-dark text-center">
+      <tr>
+        <th>Staff ID</th>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Department</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in staff_data %}
+      <tr 
+        data-department="{{ s.department }}" 
+        data-role="{{ s.role }}" 
+        data-status="{{ s.status }}">
+        <td>{{ s.id }}</td>
+        <td>{{ s.name }}</td>
+        <td>{{ s.role }}</td>
+        <td>{{ s.department }}</td>
+        <td>{{ s.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</div>
+
+<script>
+  const originalChartData = JSON.parse(`{{ chart_datasets | tojson | safe }}`);
+  const allDepartments = JSON.parse(`{{ departments | tojson | safe }}`);
+  const allRoles = JSON.parse(`{{ roles | tojson | safe }}`);
+  const departmentSelect = document.getElementById('filter-department');
+  const roleSelect = document.getElementById('filter-role');
+
+  const departmentChart = new Chart(document.getElementById('departmentChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: allDepartments,
+      datasets: originalChartData
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Staff per Department by Role' },
+        legend: { position: 'top' }
+      },
+      scales: {
+        x: { stacked: false },
+        y: { beginAtZero: true, stacked: false }
+      }
+    }
+  });
+
+  function filterChartAndTable() {
+    const selectedDept = departmentSelect.value;
+    const selectedRole = roleSelect.value;
+
+    // 🔹 Update chart labels
+    let filteredLabels = [...allDepartments];
+    if (selectedDept !== 'All') {
+      filteredLabels = [selectedDept];
+    }
+
+    // 🔹 Update datasets
+    const filteredDatasets = originalChartData
+      .filter(ds => selectedRole === 'All' || ds.label === selectedRole)
+      .map(ds => {
+        const originalData = ds.data;
+        const newData = selectedDept === 'All'
+          ? originalData
+          : [originalData[allDepartments.indexOf(selectedDept)]];
+        return {
+          ...ds,
+          data: newData
+        };
+      });
+
+    departmentChart.data.labels = filteredLabels;
+    departmentChart.data.datasets = filteredDatasets;
+    departmentChart.update();
+
+    // 🔹 Filter staff table
+    document.querySelectorAll('#staff-table tbody tr').forEach(row => {
+      const rowDept = row.getAttribute('data-department');
+      const rowRole = row.getAttribute('data-role');
+      const matchDept = selectedDept === 'All' || rowDept === selectedDept;
+      const matchRole = selectedRole === 'All' || rowRole === selectedRole;
+      row.style.display = (matchDept && matchRole) ? '' : 'none';
+    });
+  }
+
+  departmentSelect.addEventListener('change', filterChartAndTable);
+  roleSelect.addEventListener('change', filterChartAndTable);
+</script>
+
+<script>
+  const originalRoleLabels = JSON.parse(`{{ role_labels | tojson | safe }}`);
+  const originalRoleData = JSON.parse(`{{ role_data | tojson | safe }}`);
+  const originalStaff = JSON.parse(`{{ staff_data | tojson | safe }}`);
+
+  const roleCtx = document.getElementById('roleChart').getContext('2d');
+  const roleChart = new Chart(roleCtx, {
+    type: 'doughnut',
+    data: {
+      labels: originalRoleLabels,
+      datasets: [{
+        label: 'Role Distribution',
+        data: originalRoleData,
+        backgroundColor: ['#66bb6a', '#42a5f5', '#ffa726', '#ab47bc', '#ef5350', '#26c6da', '#ff7043']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Role Distribution'
+        },
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+
+  function updateRoleChart() {
+    const selectedDept = document.getElementById('filter-department').value;
+    const selectedRole = document.getElementById('filter-role').value;
+
+    const counts = {};
+    originalStaff.forEach(s => {
+      const matchDept = selectedDept === 'All' || s.department === selectedDept;
+      const matchRole = selectedRole === 'All' || s.role === selectedRole;
+
+      if (matchDept && matchRole) {
+        counts[s.role] = (counts[s.role] || 0) + 1;
+      }
+    });
+
+    const filteredLabels = Object.keys(counts);
+    const filteredData = filteredLabels.map(role => counts[role]);
+
+    roleChart.data.labels = filteredLabels;
+    roleChart.data.datasets[0].data = filteredData;
+    roleChart.update();
+  }
+
+  document.getElementById('filter-department').addEventListener('change', updateRoleChart);
+  document.getElementById('filter-role').addEventListener('change', updateRoleChart);
+</script>
+
+<script>
+function exportToPDF() {
+  const section = document.getElementById('pdf-export-section');
+
+  // Clone the export section to avoid changing UI
+  const clone = section.cloneNode(true);
+
+  // Convert all <canvas> to images in the cloned section
+  const canvases = section.querySelectorAll('canvas');
+  const clonedCanvases = clone.querySelectorAll('canvas');
+
+  canvases.forEach((canvas, index) => {
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL("image/png");
+    img.style.maxWidth = "100%";
+    img.style.height = "auto";
+    clonedCanvases[index].replaceWith(img);
+  });
+
+  const opt = {
+    margin: [1.0, 0.2],
+    filename: 'Staff_Overview_Report.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+  };
+
+  html2pdf().set(opt).from(clone).save();
+}
+</script>
+
+<script>
+function exportToExcel() {
+  const table = document.getElementById('staff-table');
+  const workbook = XLSX.utils.table_to_book(table, { sheet: "Staff Overview" });
+  XLSX.writeFile(workbook, "Staff_Overview_Report.xlsx");
+}
+</script>
+
+
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('show');
+      document.body.classList.toggle('sidebar-open');
+    }
+
+   function toggleSidebarDesktop() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+    }
+
+    // Auto-hide toggle on scroll down
+     let lastScrollTop = 0;
+    window.addEventListener('scroll', function () {
+      const mobileToggle = document.getElementById('mobileToggle');
+      const desktopToggle = document.querySelector('.toggle-btn');
+      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+
+      if (currentScroll < lastScrollTop) {
+         // Scrolling up → show buttons
+      mobileToggle.style.opacity = "1";
+      mobileToggle.style.pointerEvents = "auto";
+      if (desktopToggle) {
+        desktopToggle.style.opacity = "1";
+        desktopToggle.style.pointerEvents = "auto";
+      }
+    } else {
+      // Scrolling down → hide buttons
+      mobileToggle.style.opacity = "0";
+      mobileToggle.style.pointerEvents = "none";
+      if (desktopToggle) {
+        desktopToggle.style.opacity = "0";
+        desktopToggle.style.pointerEvents = "none";
+      }
+    }
+
+      lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+    });
+  </script>
+  </body>
+</html>

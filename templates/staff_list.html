@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Staff List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f2f6fc;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 30px;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #0d6efd;
+      font-weight: bold;
+      font-size: 28px;
+      font-family: Georgia, 'Times New Roman', Times, serif;
+    }
+
+    .card {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+    }
+
+    .card-body {
+      font-size: 18px;
+      font-family: Georgia, 'Times New Roman', Times, serif;
+    }
+
+    .staff-label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .staff-value {
+      color: #555;
+    }
+
+    .btn-group-sm {
+      margin-top: 15px;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="page-header"><i class="bi bi-person-lines-fill"></i> All Staff</div>
+
+    <div class="top-actions">
+      <a href="{{ url_for('auth.admin_dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left-circle"></i> Dashboard
+      </a>
+      <a href="{{ url_for('auth.add_staff') }}" class="btn btn-outline-success">
+        <i class="bi bi-person-plus-fill"></i> Add Staff
+      </a>
+    </div>
+
+    <div class="row">
+      {% for staff in staff_list %}
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title text-primary"><i class="bi bi-person-circle"></i> {{ staff.full_name }}</h5>
+            <p><span class="staff-label">Username:</span> <span class="staff-value">{{ staff.username }}</span></p>
+            <p><span class="staff-label">Email:</span> <span class="staff-value">{{ staff.email }}</span></p>
+            <p><span class="staff-label">Department:</span> <span class="staff-value">{{ staff.department }}</span></p>
+            <p><span class="staff-label">Role:</span> <span class="staff-value text-capitalize">{{ staff.role }}</span></p>
+            <p><span class="staff-label">Last Login:</span> <span class="staff-value">{{ staff.last_login or "Never" }}</span></p>
+            <p><span class="staff-label">Password Changed:</span> <span class="staff-value">{{ staff.last_password_change or "Never" }}</span></p>
+            <div class="btn-group-sm d-flex gap-2 justify-content-end">
+              <a href="{{ url_for('auth.edit_staff', staff_id=staff.id) }}" class="btn btn-warning btn-sm">
+                <i class="bi bi-pencil-square"></i> Edit
+              </a>
+              <a href="{{ url_for('auth.delete_staff', staff_id=staff.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this staff?')">
+                <i class="bi bi-trash"></i> Delete
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

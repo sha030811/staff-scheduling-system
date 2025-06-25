@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Attendance Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap" rel="stylesheet">
+ <style>
+    body {
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      background-color: #f8f9fa;
+      margin: 0;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 220px;
+      background-color: #004487;
+      color: white;
+      padding-top: 80px;
+      transform: translateX(-100%);
+      transition: transform 0.15s ease;
+      overflow: hidden;
+      z-index: 1000;
+    }
+
+    .sidebar.show {
+      transform: translateX(0);
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: white;
+      text-decoration: none;
+      padding: 20px 20px;
+      font-weight: bold;
+    }
+
+    .sidebar a:hover {
+      background-color: #495057;
+    }
+
+    .sidebar i {
+      font-size: 22px;
+    }
+
+    .sidebar-title {
+      font-size: 24px;
+      padding: 20px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar .label {
+      display: inline;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .sidebar.collapsed .label {
+      opacity: 0;
+      visibility: hidden;
+      width: 0;
+      display: inline-block;
+    }
+
+    .mobile-toggle, .toggle-btn {
+      position: fixed;
+      top: 15px;
+      background-color: #004487;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 20px;
+      z-index: 1101;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .mobile-toggle {
+      left: 15px;
+      display: none;
+    }
+
+    .toggle-btn {
+      left: 230px;
+      display: none;
+    }
+
+    .main {
+      margin-left: 0;
+      padding: 100px 30px 30px 30px;
+      transition: margin-left 0.3s ease;
+    }
+
+    .main {
+      padding: 40px;
+      transition: transform 0.15s ease;
+    }
+
+    body.sidebar-open .main {
+      transform: translateX(220px);
+    }
+
+    .attendance-title {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 2rem;
+      color: #343a40;
+      padding-top: 60px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #dee2e6;
+      padding-bottom: 20px;
+    }
+@media (max-width: 768px) {
+  .mobile-toggle {
+        display: block;
+      }
+      
+  .main {
+    padding-top: 3% !important; /* ✅ Push content down on mobile */
+  }
+}
+
+@media (min-width: 769px) {
+      .toggle-btn {
+        display: block;
+        left: 230px;
+      }
+
+      .sidebar {
+        transform: translateX(0);
+        width: 220px;
+      }
+
+      .sidebar.collapsed {
+        width: 70px;
+      }
+
+      .sidebar.collapsed ~ .toggle-btn {
+        left: 85px;
+      }
+
+      .main {
+        margin-left: 220px;
+        transition: margin-left 0.3s ease;
+      }
+
+      .sidebar.collapsed + .toggle-btn {
+          left: 85px;
+        }
+
+      .sidebar.collapsed ~ .main {
+        margin-left: 70px !important;
+      }
+    }
+  </style>
+
+</head>
+<body>
+  <!-- Mobile Toggle -->
+  <button id="mobileToggle" class="mobile-toggle" onclick="toggleSidebar()">
+    <i class="bi bi-list"></i>
+  </button>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar">
+    <div class="sidebar-title">
+      <i class="bi bi-bar-chart"></i><span class="label">Reports</span>
+    </div>
+    <a href="/attendance_report"><i class="bi bi-calendar-check"></i> <span class="label">Attendance</span></a>
+    <a href="/shift_coverage"><i class="bi bi-clock-history"></i> <span class="label">Shift Coverage</span></a>
+    <a href="/request_analysis"><i class="bi bi-bar-chart-line"></i> <span class="label">Request Analysis</span></a>
+    <a href="/staff_overview"><i class="bi bi-people"></i> <span class="label">Staff Overview</span></a>
+    <a href="/login_activity"><i class="bi bi-box-arrow-in-right"></i> <span class="label">Login Activity</span></a>
+    <a href="/reports_dashboard"><i class="bi bi-arrow-left-circle"></i> <span class="label">Back to Dashboard</span></a>
+
+  </div>
+<button class="toggle-btn d-none d-md-block" onclick="toggleSidebarDesktop()">☰</button>
+  <!-- Main Content -->
+  <div id="main" class="main">
+    <div class="page-header mb-4">
+    <h2 class="attendance-title">Attendance Report</h2>
+    </div>
+
+    <div class="d-flex justify-content-end mb-3">
+  <div class="dropdown">
+    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+      📁 Export Options
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li>
+        <a class="dropdown-item text-success fw-semibold" href="/export_attendance_csv">
+          <i class="bi bi-filetype-csv"></i> Export CSV
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item text-danger fw-semibold" href="/export_attendance_pdf">
+          <i class="bi bi-file-earmark-pdf"></i> Export PDF
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item text-primary fw-semibold" href="/export_attendance_xlsx">
+          <i class="bi bi-file-earmark-excel"></i> Export Excel
+        </a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+  <form method="get" class="mb-4">
+  <div class="d-flex flex-wrap justify-content-end gap-2">
+      <input type="date" name="date" class="form-control" style="max-width: 200px;" value="{{ selected_date }}">
+      <input type="text" name="search" class="form-control" placeholder="Search by name" style="max-width: 200px;" value="{{ search }}">
+      <button class="btn btn-primary">Filter</button>
+  </div>
+</form>
+
+    <table class="table table-bordered bg-white shadow-sm">
+      <thead class="table-dark">
+        <tr>
+          <th>Staff Name</th>
+          <th>Date</th>
+          <th>Check-In Time</th>
+          <th>Check-Out Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in records %}
+        <tr>
+          <td>{{ staff_list[record.staff_id].full_name }}</td>
+          <td>{{ record.date }}</td>
+          <td>{{ record.check_in_time.strftime('%H:%M:%S') if record.check_in_time else '—' }}</td>
+          <td>{{ record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center">No records found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Script -->
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('show');
+      document.body.classList.toggle('sidebar-open');
+    }
+
+   function toggleSidebarDesktop() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+    }
+
+
+    // Auto-hide toggle on scroll down
+     let lastScrollTop = 0;
+    window.addEventListener('scroll', function () {
+      const mobileToggle = document.getElementById('mobileToggle');
+      const desktopToggle = document.querySelector('.toggle-btn');
+      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+
+      if (currentScroll < lastScrollTop) {
+         // Scrolling up → show buttons
+      mobileToggle.style.opacity = "1";
+      mobileToggle.style.pointerEvents = "auto";
+      if (desktopToggle) {
+        desktopToggle.style.opacity = "1";
+        desktopToggle.style.pointerEvents = "auto";
+      }
+    } else {
+      // Scrolling down → hide buttons
+      mobileToggle.style.opacity = "0";
+      mobileToggle.style.pointerEvents = "none";
+      if (desktopToggle) {
+        desktopToggle.style.opacity = "0";
+        desktopToggle.style.pointerEvents = "none";
+      }
+    }
+
+      lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+    });
+  </script>
+</body>
+</html>
